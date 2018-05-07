@@ -6,7 +6,6 @@ triangular lattice
 
 import numpy as np
 import scipy.optimize as spopt
-import sys
 
 from datetime import datetime
 from time import time
