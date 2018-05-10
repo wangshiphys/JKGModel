@@ -4,12 +4,13 @@ triangular lattice
 """
 
 
-import numpy as np
-import scipy.optimize as spopt
-
 from datetime import datetime
+from scipy.optimize import root
 from time import time
 
+import numpy as np
+
+from LatticeInfo import AS, BS, RS
 from SigmaMatrix import PMS
 
 
@@ -19,32 +20,10 @@ np.set_printoptions(suppress=True)
 class MeanFieldSolver:
     """
     Mean-Field solution of the t-J-K-Gamma model on triangular lattice
-
-    Class Attributes
-    ----------------
-    AS : 2-D array
-        The real space translation vectors
-    BS : 2-D array
-        The reciprocal space (k space) translation vectors
-    RS : 2-D array
-        The displaces to three nonequivalent nearest neighbors on triangular
-        lattice
     """
 
-    AS = np.array([[1, 0], [0.5, np.sqrt(3)/2]], dtype=np.float64)
-    RS = np.array(
-        [[1, 0], [0.5, np.sqrt(3)/2], [-0.5, np.sqrt(3)/2]], dtype=np.float64
-    )
-    BS = 2 * np.pi * np.array(
-        [[1, -1/np.sqrt(3)], [0, 2/np.sqrt(3)]], dtype=np.float64
-    )
-
-    AS.setflags(write=False)
-    BS.setflags(write=False)
-    RS.setflags(write=False)
-
-    def __init__(self, t=1.0, J=0.0, K=0.0, G=0.0, filling=1.0, kx_num=200,
-                 ky_num=None):
+    def __init__(self, t=1.0, J=0.0, K=0.0, G=0.0, filling=1.0, numkx=200,
+                 numky=None):
         """
         Customize the newly created instance
 
@@ -65,52 +44,60 @@ class MeanFieldSolver:
         filling : float, optional
             The number of particle per-site
             default: 1.0 (half filling)
-        kx_num : int, optional
-            The number of k point along the first translation vector in k space
+        numkx : int, optional
+            The number of k points along the first translation vector in k space
             default: 200
-        ky_num : int, optional
-            The number of k point along the second translation vector in k space
-            default: ky_num = kx_num
+        numky : int, optional
+            The number of k points along the second translation vector in k
+            space
+            default: numky = numkx
         """
 
-        if ky_num is None:
-            ky_num = kx_num
-        ratio_x = np.linspace(0, 1, kx_num, endpoint=False)
-        ratio_y = np.linspace(0, 1, ky_num, endpoint=False)
+        if numky is None:
+            numky = numkx
+        ratio_x = np.linspace(0, 1, numkx, endpoint=False)
+        ratio_y = np.linspace(0, 1, numky, endpoint=False)
         ratio_mesh = np.stack(
             np.meshgrid(ratio_x, ratio_y, indexing="ij"), axis=-1
         )
 
-        ks = np.matmul(ratio_mesh, self.BS)
-        ksRS = np.matmul(ks, self.RS.T)
+        ks = np.matmul(ratio_mesh, BS)
+        ksRS = np.matmul(ks, RS.T)
         fks = np.sum(np.cos(ksRS), axis=-1)
         pfs = np.exp(1j * ksRS)
 
-        self.t = t
-        self.J = J
-        self.K = K
-        self.G = G
-        self.filling = filling
-        self.kx_num = kx_num
-        self.ky_num = ky_num
-        self.ks_num = kx_num * ky_num
+        self._t = t
+        self._J = J
+        self._K = K
+        self._G = G
+        self._filling = filling
+        self.numkx = numkx
+        self.numky = numky
+        self.numks = numkx * numky
         self._fks = fks
         self._pfs = pfs
 
     def UpdateModelParams(self, t=None, J=None, K=None, G=None, filling=None):
+        """
+        Update the model parameters
+
+        See also
+        __init__()
+        """
+
         if t is not None:
-            self.t = t
+            self._t = t
         if J is not None:
-            self.J = J
+            self._J = J
         if K is not None:
-            self.K = K
+            self._K = K
         if G is not None:
-            self.G = G
+            self._G = G
         if filling is not None:
-            self.filling = filling
+            self._filling = filling
 
     def _HSolver(self, mu, coeff_matrix):
-        hopping_plus = self.t * self._fks + mu / 2
+        hopping_plus = self._t * self._fks + mu / 2
         hopping_minus = -hopping_plus
         pairing = np.tensordot(
             self._pfs,
@@ -118,7 +105,7 @@ class MeanFieldSolver:
             axes=(2, 0)
         )
 
-        HKs = np.zeros((self.kx_num, self.ky_num, 4, 4), dtype=np.complex128)
+        HKs = np.zeros((self.numkx, self.numky, 4, 4), dtype=np.complex128)
         HKs[:, :, 0, 0] = hopping_minus
         HKs[:, :, 1, 1] = hopping_minus
         HKs[:, :, 2, 2] = hopping_plus
@@ -136,9 +123,9 @@ class MeanFieldSolver:
         # Combine the model parameters J, K, G with these operators' averages
         # to get the total coefficient
 
-        J = self.J
-        K = self.K / 4
-        G = self.G / 2
+        J = self._J
+        K = self._K / 4
+        G = self._G / 2
 
         delta1, delta2, delta3 = -(J + K) * averages[0]
 
@@ -161,8 +148,7 @@ class MeanFieldSolver:
             [d1z, d2z, d3z]
         ])
 
-    @staticmethod
-    def _ParticleNumber(Ud, U):
+    def _ParticleNumber(self, Ud, U):
         tmp = np.matmul(Ud, U)
         return (np.sum(tmp[:, :, 0, 0]) + np.sum(tmp[:, :, 1, 1])).real
 
@@ -188,14 +174,14 @@ class MeanFieldSolver:
         U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
 
         pairing0 = self._PairingTermAverage(U0_dag, U1, which=0)
-        pairing0 = pairing0.conj() / self.ks_num
+        pairing0 = pairing0.conj() / self.numks
         outputs = np.mean(pairing0)
 
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.ks_num
+        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
 
         if find_root:
             difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self.filling
+            difference[0] = filling_out - self._filling
             difference[1::2] = outputs.real - params_in[1::2]
             difference[2::2] = outputs.imag - params_in[2::2]
             return difference
@@ -217,14 +203,14 @@ class MeanFieldSolver:
             tmp = np.matmul(U0_dag, np.matmul(PMS[i], U1))
             tmp = tmp[:, :, 0, 0] + tmp[:, :, 1, 1]
             As.append(np.tensordot(self._pfs, tmp, axes=([0, 1], [0, 1])))
-        As = np.stack(As).conj() / self.ks_num
+        As = np.stack(As).conj() / self.numks
         outputs = np.mean(As, axis=-1)
 
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.ks_num
+        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
 
         if find_root:
             difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self.filling
+            difference[0] = filling_out - self._filling
             difference[1::2] = outputs.real - params_in[1::2]
             difference[2::2] = outputs.imag - params_in[2::2]
             return difference
@@ -242,14 +228,14 @@ class MeanFieldSolver:
         U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
 
         pairing0 = self._PairingTermAverage(U0_dag, U1, which=0)
-        pairing0 = pairing0.conj() / self.ks_num
+        pairing0 = pairing0.conj() / self.numks
 
         outputs = pairing0[0]
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.ks_num
+        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
 
         if find_root:
             difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self.filling
+            difference[0] = filling_out - self._filling
             difference[1::2] = outputs.real - params_in[1::2]
             difference[2::2] = outputs.imag - params_in[2::2]
             return difference
@@ -263,21 +249,21 @@ class MeanFieldSolver:
         coeff_matrix = self._CoeffMatrixGenerator(tmp)
         U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
 
-        pairings = self._AllAverages(U0_dag, U1).conj()/self.ks_num
+        pairings = self._AllAverages(U0_dag, U1).conj() / self.numks
 
         outputs = pairings.flatten()
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.ks_num
+        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
 
         if find_root:
             difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self.filling
+            difference[0] = filling_out - self._filling
             difference[1::2] = outputs.real - params_in[1::2]
             difference[2::2] = outputs.imag - params_in[2::2]
             return difference
         else:
             return filling_out, outputs
 
-    def __call__(self, delta=None, J=None, K=None, G=None, ptype=None, file=None):
+    def __call__(self, delta=0., J=None, K=None, G=None, ptype=None, file=None):
         self.UpdateModelParams(t=delta, J=J, K=K, G=G, filling=1-delta)
 
         if ptype == "s":
@@ -298,17 +284,20 @@ class MeanFieldSolver:
             pairing_type = None
 
         t0 = time()
-        res = spopt.root(CoreFunc, x0)
+        res = root(CoreFunc, x0)
         t1 = time()
 
-        print(f"J={self.J}, K={self.K}, G={self.G}, delta={delta}", file=file)
+        print(
+            f"J={self._J}, K={self._K}, G={self._G}, delta={delta}",
+            file=file
+        )
         print(f"The assumed pairing type: {pairing_type}", file=file)
         if res.success:
             print("res.fun:", res.fun, file=file)
             print("res.success:", res.success, file=file)
             print("res.x:", res.x, file=file)
         else:
-            print("Failed to find a solution!", file=file)
+            print("Failed to find a self-consistent solution!", file=file)
         print(f"The time spend on finding the solution: {t1-t0}s", file=file)
         print('=' * 80, file=file, flush=True)
 
@@ -317,17 +306,25 @@ class MeanFieldSolver:
 
 if __name__ == "__main__":
     start_time = "Program start running at: {0:%Y-%m-%d %H:%M:%S}"
+    start_time = start_time.format(datetime.now())
     msg = "The time spend on initializing the solver: {0}s"
-    file_name = "log/log_J_{0:.1f}_K{1:.1f}.txt"
+    file = "log/log_J_{0:.1f}_K_{1:.1f}_G_{2:.1f}.txt"
 
-    J = 1.5
-    K = -0.5
+    delta, J, K, G = 0.4, 1.6, -0.5, 0.0
+
     t0 = time()
-    solver = MeanFieldSolver(J=J, K=K)
+    solver = MeanFieldSolver(J=J, K=K, G=G, numkx=100)
     t1 = time()
+    res = solver(delta=delta, ptype="d+id")
 
-    with open(file_name.format(J, K), mode='a', buffering=1) as fp:
-        print(start_time.format(datetime.now()), file=fp)
-        print(msg.format(t1-t0), file=fp, flush=True)
-        for i in range(50):
-            res = solver(delta=0.1, ptype='s', file=fp)
+
+
+    # for J in np.arange(-2.0, 2.1, 0.1):
+    #     with open(file.format(J, K, G), mode='a', buffering=1) as fp:
+    #         print(start_time.format(datetime.now()), file=fp)
+    #         print(msg.format(t1-t0), file=fp, flush=True)
+    #         print('#' * 80, file=fp, flush=True)
+    #
+    #         for delta in np.arange(0.0, 0.5, 0.01):
+    #             for i in range(5):
+    #                 res = solver(delta=delta, J=J, ptype='s', file=fp)

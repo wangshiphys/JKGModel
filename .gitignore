@@ -105,3 +105,15 @@ venv.bak/
 
 # PyCharm
 .idea/
+
+# log file
+log/
+
+# data file
+data/
+
+# fig file
+fig/
+
+#tmp file
+tmp/
