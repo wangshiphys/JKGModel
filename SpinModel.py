@@ -15,7 +15,7 @@ from LatticeInfo import AS
 
 class SpinModelSolver:
     """
-    Exact diagonalization of the J-K-Gamma model on triangular lattice
+    Exact diagonalizing of the J-K-Gamma model on triangular lattice
     """
 
     def __init__(self, numx=4, numy=None):
@@ -29,7 +29,7 @@ class SpinModelSolver:
             default: 4
         numy : int, optional
             The number of lattice sites along the second translation vector
-            default: numx = numy
+            default: numy = numx
         """
 
         if not isinstance(numx, int) or numx < 1:
@@ -66,24 +66,26 @@ class SpinModelSolver:
         xbonds = []
         ybonds = []
         zbonds = []
+        alphas = np.array([[0, 180], [-120, 60], [-60, 120]])
         for bond in intra+inter:
             p0, p1 = bond.getEndpoints()
             azimuth = bond.getAzimuth()
+            judge = np.any(np.abs(azimuth - alphas) < atol, axis=1)
 
             index0 = cluster.getIndex(site=p0, fold=True)
             index1 = cluster.getIndex(site=p1, fold=True)
             bond_index = (index0, index1)
 
-            if np.abs(azimuth) < atol or np.abs(azimuth - 180) < atol:
+            if judge[0]:
                 xbonds.append(bond_index)
-            elif np.abs(azimuth - 60) < atol or np.abs(azimuth + 120) < atol:
+            elif judge[1]:
                 ybonds.append(bond_index)
-            elif np.abs(azimuth - 120) < atol or np.abs(azimuth + 60) < atol:
+            elif judge[2]:
                 zbonds.append(bond_index)
             else:
                 raise ValueError("Invalid bond direction!")
 
-        return tuple(xbonds), tuple(ybonds), tuple(zbonds)
+        return xbonds, ybonds, zbonds
 
     def _TermMatrix(self):
         # Calculate the matrix representation of the J, K, Gamma term
@@ -94,10 +96,10 @@ class SpinModelSolver:
         tmp_dir = "tmp/"
         Path(tmp_dir).mkdir(parents=True, exist_ok=True)
 
-        name_template = tmp_dir + "H{0}_numx_{1}_numy_{2}.npz"
-        name_HJ = name_template.format('J', self.numx, self.numy)
-        name_HK = name_template.format('K', self.numx, self.numy)
-        name_HG = name_template.format('G', self.numx, self.numy)
+        name_template = tmp_dir + "TRIANGLE_NUMX_{0}_NUMY_{1}_H{2}.npz"
+        name_HJ = name_template.format(self.numx, self.numy, "J")
+        name_HK = name_template.format(self.numx, self.numy, "K")
+        name_HG = name_template.format(self.numx, self.numy, "G")
 
         if Path(name_HJ).exists() and Path(name_HK).exists() and Path(
                 name_HG).exists():
@@ -110,79 +112,72 @@ class SpinModelSolver:
             site_num = self.site_num
 
             HJ = HK = HG = 0.0
-            for (K, G0, G1), bonds in zip(configs, all_bonds):
+            for (gamma, alpha, beta), bonds in zip(configs, all_bonds):
                 for index0, index1 in bonds:
                     SKM = SpinInteraction.matrixFunc(
-                        [(index0, K), (index1, K)], site_num
+                        [(index0, gamma), (index1, gamma)], site_num
                     )
                     HK += SKM
                     HJ += SKM
                     HJ += SpinInteraction.matrixFunc(
-                        [(index0, G0), (index1, G0)], site_num
+                        [(index0, alpha), (index1, alpha)], site_num
                     )
                     HJ += SpinInteraction.matrixFunc(
-                        [(index0, G1), (index1, G1)], site_num
+                        [(index0, beta), (index1, beta)], site_num
                     )
                     HG += SpinInteraction.matrixFunc(
-                        [(index0, G0), (index1, G1)], site_num
+                        [(index0, alpha), (index1, beta)], site_num
                     )
                     HG += SpinInteraction.matrixFunc(
-                        [(index0, G1), (index1, G0)], site_num
+                        [(index0, beta), (index1, alpha)], site_num
                     )
             save_npz(name_HJ, HJ, compressed=False)
             save_npz(name_HK, HK, compressed=False)
             save_npz(name_HG, HG, compressed=False)
 
-        # Caching these matrix in the SpinModelSolver instance
-        self._HJ = HJ
-        self._HK = HK
-        self._HG = HG
+        # Caching these matrices in the SpinModelSolver instance for reuse
+        self._cache = (HJ, HK, HG)
 
-    def GSE(self, alpha=0.0, beta=0.0, tol=0.0):
+    def GSE(self, J=-1.0, K=0.0, G=0.0, *, tol=0.0):
         """
         Calculate the ground state energy of the model Hamiltonian
 
         Parameter
         ---------
-        alpha : float, optional
-            Parameter that determines the value the J, K, G coefficients
+        J : float, optional
+            The coefficient of the Heisenberg term
+            default: -1.0
+        K : float, optional
+            The coefficient of the Kitaev term
             default: 0.0
-        beta : float, optional
-            Parameter that determines the value the J, K, G coefficients
+        G : float, optional
+            The coefficient of the Gamma term
             default: 0.0
         tol : float, optional
             Relative accuracy for eigenvalues (stop criterion). The default
             value 0 implies machine precision
             default: 0.0
 
-        J = np.sin(beta) * np.sin(alpha)
-        K = np.sin(beta) * np.cos(alpha)
-        G = np.cos(beta)
-
-        alpha in the range [-pi, pi)
-        beta in the range[0, pi)
-
         Returns
         -------
         dt : float
             The time spend on calculating the ground state energy
         gse : float
-            The ground state energy
+            The pre-site ground state energy
         """
 
-        J = np.sin(beta) * np.sin(alpha)
-        K = np.sin(beta) * np.cos(alpha)
-        G = np.cos(beta)
-
-        if not hasattr(self, "_HJ"):
+        if not hasattr(self, "_cache"):
             self._TermMatrix()
-        H = J * self._HJ + K * self._HK + G * self._HG
+        HJ, HK, HG = self._cache
+        H = J * HJ + K * HK + G * HG
 
         t0 = time()
         gse = eigsh(H, k=1, which="SA", return_eigenvectors=False, tol=tol)
         t1 = time()
 
         return t1 - t0, gse[0] / self.site_num
+
+    __call__ = GSE
 
 
 def derivation(xs, ys, nth=1):
@@ -225,26 +220,26 @@ def visualization(ax, alphas, Es):
     color1 = "#F57900"
     fontdict = {"fontsize": 12}
 
-    ax_left = ax
-    ax_right = ax.twinx()
+    ax_Es = ax
+    ax_d2Es = ax.twinx()
 
     alphas_new, d2Es = derivation(alphas, Es, nth=2)
     d2Es = -d2Es / (np.pi ** 2)
-    line_left, = ax_left.plot(alphas, Es, color=color0)
-    line_right, = ax_right.plot(alphas_new, d2Es, color=color1)
+    line_Es, = ax_Es.plot(alphas, Es, color=color0)
+    line_d2Es, = ax_d2Es.plot(alphas_new, d2Es, color=color1)
 
-    ax_left.set_ylabel('E', color=color0, fontdict=fontdict)
-    ax_left.tick_params('y', colors=color0)
-    ax_right.set_ylabel(r"$-d^2E/d\alpha^2$", color=color1, fontdict=fontdict)
-    ax_right.tick_params('y', colors=color1)
+    ax_Es.set_ylabel('E', color=color0, fontdict=fontdict)
+    ax_Es.tick_params('y', colors=color0)
+    ax_d2Es.set_ylabel(r"$-d^2E/d\alpha^2$", color=color1, fontdict=fontdict)
+    ax_d2Es.tick_params('y', colors=color1)
 
-    ax_left.set_title(
+    ax_Es.set_title(
         r"$E\ and\ -\frac{d^2E}{d\alpha^2}\ vs\ \alpha$", fontdict=fontdict
     )
-    ax_left.set_xlim(alphas[0], alphas[-1])
-    ax_left.set_xlabel(r"$\alpha(/\pi)$")
-    ax_left.legend(
-        (line_left, line_right),
+    ax_Es.set_xlim(alphas[0], alphas[-1])
+    ax_Es.set_xlabel(r"$\alpha(/\pi)$")
+    ax_Es.legend(
+        (line_Es, line_d2Es),
         ('E', r"$-\frac{d^2E}{d\alpha^2}$"),
         loc = 0
     )
@@ -252,10 +247,13 @@ def visualization(ax, alphas, Es):
 
 def ArgParser():
     """
-    Parse the command lin arguments
+    Parse the command line arguments
     """
 
-    parser = argparse.ArgumentParser(description="Parse command line argument.")
+    parser = argparse.ArgumentParser(
+        description="Parse command line arguments."
+    )
+
     parser.add_argument(
         "--beta", type=float, default=0.5,
         help="The Gamma term parameter (Default: %(default)s)."
@@ -289,7 +287,7 @@ def FileNames(numx, numy, step, beta):
     Path(data_dir).mkdir(parents=True, exist_ok=True)
     Path(fig_dir).mkdir(parents=True, exist_ok=True)
 
-    template = "{0}_numx_{1}_numy_{2}_step_{3:.3f}_beta_{4:.2f}.{5}"
+    template = "{0}_numx_{1}_numy_{2}_step_{3:.3f}_beta_{4:.3f}.{5}"
     log_file = log_dir + template.format("Log", numx, numy, step, beta, "txt")
     data_file = data_dir + template.format("GSE", numx, numy, step, beta, "npy")
     fig_file = fig_dir + template.format("GSE", numx, numy, step, beta, "png")
@@ -311,33 +309,29 @@ def BreakPointRecovery(data_file, step):
     return num, res
 
 
-if __name__ == "__main__":
-    start_time = "Program start running at: {0:%Y-%m-%d %H:%M:%S}"
-    start_time = start_time.format(datetime.now())
+def GlobalPhaseDiagram(numx=3, numy=4, step=0.01, beta=0.5):
+    now_time = "{0:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+    header = "Program start running at: " + now_time + "\n" + "#" * 80 + "\n\n"
+    log_template = "The {ith}th alpha\nThe current alpha: {alpha:.3f}\n"
+    log_template += "The ground state energy: {gse}\n"
+    log_template += "The time spend on the GSE: {dt}s\n" + "=" * 80 + "\n"
 
-    # numx, numy, step, beta = ArgParser()
-    numx, numy, step, beta= 4, 5, 0.01, 0.5
     log_file, data_file, fig_file = FileNames(numx, numy, step, beta)
-
-    num_alpha, res = BreakPointRecovery(data_file, step)
-
-    fp = open(log_file, mode='a', buffering=1)
-    fp.write(start_time + '\n' + '#' * 80 + "\n\n")
-
-    beta_pi = beta * np.pi
     solver = SpinModelSolver(numx=numx, numy=numy)
+    num_alpha, res = BreakPointRecovery(data_file, step)
+    Js = np.sin(beta * np.pi) * np.sin(res[0] * np.pi)
+    Ks = np.sin(beta * np.pi) * np.cos(res[0] * np.pi)
+    G = np.cos(beta * np.pi)
+
+    fp = open(log_file, mode="a", buffering=1)
+    fp.write(header)
     for i in range(num_alpha):
         if np.isnan(res[1, i]):
-            dt, res[1, i] = solver.GSE(
-                alpha=res[0, i]*np.pi, beta=beta_pi, tol=1e-4
-            )
+            dt, res[1, i] = solver.GSE(J=Js[i], K=Ks[i], G=G, tol=1e-10)
             np.save(data_file, res)
-
-            msg = "The {0}th alpha\n".format(i)
-            msg += "The current alpha: {0:.3f}\n".format(res[0, i])
-            msg += "The ground state energy: {0}\n".format(res[1, i])
-            msg += "The time spend on the GSE: {0}s\n".format(dt)
-            msg += '=' * 80 + '\n'
+            msg = log_template.format(
+                ith=i, alpha=res[0, i], gse=res[1, i], dt=dt
+            )
             fp.write(msg)
     fp.close()
 
@@ -345,4 +339,9 @@ if __name__ == "__main__":
     visualization(ax, res[0], res[1])
     fig.savefig(fig_file)
     plt.close("all")
-    # plt.show()
+
+
+if __name__ == "__main__":
+    # numx, numy, step, beta = ArgParser()
+    numx, numy, step, beta = 3, 4, 0.005, 0.5
+    GlobalPhaseDiagram(numx=numx, numy=numy, step=step, beta=beta)
