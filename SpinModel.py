@@ -303,18 +303,12 @@ def BreakPointRecovery(data_file, step):
 
     if Path(data_file).exists():
         res = np.load(data_file)
-        tmp = np.isnan(res[1])
-        if np.any(tmp):
-            start = list(tmp).index(True)
-        else:
-            start = res.shape[1]
     else:
         alphas = np.arange(0, 2.2, step=step)
         Es = np.zeros(alphas.shape) + np.nan
         res = np.array([alphas, Es])
-        start = 0
-    stop = res.shape[1]
-    return start, stop, res
+    num = res.shape[1]
+    return num, res
 
 
 if __name__ == "__main__":
@@ -322,30 +316,33 @@ if __name__ == "__main__":
     start_time = start_time.format(datetime.now())
 
     # numx, numy, step, beta = ArgParser()
-    numx, numy, step, beta = 3, 4, 0.005, 0.5
+    numx, numy, step, beta= 4, 5, 0.01, 0.5
     log_file, data_file, fig_file = FileNames(numx, numy, step, beta)
 
-    start, stop, res = BreakPointRecovery(data_file, step)
+    num_alpha, res = BreakPointRecovery(data_file, step)
 
     fp = open(log_file, mode='a', buffering=1)
     fp.write(start_time + '\n' + '#' * 80 + "\n\n")
 
     beta_pi = beta * np.pi
     solver = SpinModelSolver(numx=numx, numy=numy)
-    for i in range(start, stop):
-        dt, res[1, i] = solver.GSE(alpha=res[0, i]*np.pi, beta=beta_pi, tol=0.0)
-        np.save(data_file, res)
+    for i in range(num_alpha):
+        if np.isnan(res[1, i]):
+            dt, res[1, i] = solver.GSE(
+                alpha=res[0, i]*np.pi, beta=beta_pi, tol=1e-4
+            )
+            np.save(data_file, res)
 
-        msg = "The {0}th alpha\n".format(i)
-        msg += "The current alpha: {0:.3f}\n".format(res[0, i])
-        msg += "The ground state energy: {0}\n".format(res[1, i])
-        msg += "The time spend on the GSE: {0}s\n".format(dt)
-        msg += '=' * 80 + '\n'
-        fp.write(msg)
+            msg = "The {0}th alpha\n".format(i)
+            msg += "The current alpha: {0:.3f}\n".format(res[0, i])
+            msg += "The ground state energy: {0}\n".format(res[1, i])
+            msg += "The time spend on the GSE: {0}s\n".format(dt)
+            msg += '=' * 80 + '\n'
+            fp.write(msg)
     fp.close()
 
     fig, ax = plt.subplots()
     visualization(ax, res[0], res[1])
     fig.savefig(fig_file)
-    # plt.close("all")
-    plt.show()
+    plt.close("all")
+    # plt.show()
