@@ -4,128 +4,152 @@ triangular lattice
 """
 
 
-from datetime import datetime
 from scipy.optimize import root
 from time import time
 
 import numpy as np
 
-from LatticeInfo import AS, BS, RS
+from LatticeInfo import BS, RS
 from SigmaMatrix import PMS
 
 
-np.set_printoptions(suppress=True)
-
-
-class MeanFieldSolver:
+class BaseMeanFieldSolver:
     """
     Mean-Field solution of the t-J-K-Gamma model on triangular lattice
     """
 
-    def __init__(self, t=1.0, J=0.0, K=0.0, G=0.0, filling=1.0, numkx=200,
-                 numky=None):
+    def __init__(self, numkx=100, numky=None):
         """
         Customize the newly created instance
 
         Parameters
         ----------
-        t : float, optional
-            The hopping amplitude
-            default: 1.0
-        J : float, optional
-            The coefficient of the Heisenberg term
-            default: 0.0
-        K : float, optional
-            The coefficient of the Kitaev term
-            default: 0.0
-        G : float, optional
-            The coefficient of the Gamma term
-            default: 0.0
-        filling : float, optional
-            The number of particle per-site
-            default: 1.0 (half filling)
         numkx : int, optional
-            The number of k points along the first translation vector in k space
-            default: 200
+            The number of k-points along the 1st translation vector in k-space
+            default: 100
         numky : int, optional
-            The number of k points along the second translation vector in k
-            space
+            The number of k-points along the 2nd translation vector in k-space
             default: numky = numkx
         """
 
+        if not isinstance(numkx, int) or numkx < 1:
+            raise ValueError("The `numkx` parameter must be positive integer!")
         if numky is None:
             numky = numkx
+        else:
+            if not isinstance(numky, int) or numky < 1:
+                raise ValueError(
+                    "The `numky` parameter must be positive integer!"
+                )
+
+        # Every k-point in the first Brillouin Zone can be represented as
+        # `x * b1 + y * b2` where b1 and b2 are the translation vectors of
+        # the reciprocal lattice and x, y are float number in the range [0, 1)
+        # The `ratio_mesh` is a collection of all the `(x, y)`s in the first
+        # Brillouin zone. `ratio_mesh.shape = (numkx, numky, 2)`
         ratio_x = np.linspace(0, 1, numkx, endpoint=False)
         ratio_y = np.linspace(0, 1, numky, endpoint=False)
         ratio_mesh = np.stack(
             np.meshgrid(ratio_x, ratio_y, indexing="ij"), axis=-1
         )
+        ksRS = np.matmul(np.matmul(ratio_mesh, BS), RS.T)
 
-        ks = np.matmul(ratio_mesh, BS)
-        ksRS = np.matmul(ks, RS.T)
+        # fks = cos(kr1) + cos(kr2) + cos(kr3)
+        # pfs = exp(1j * kr1), exp(1j * kr2), exp(1j * kr3)
         fks = np.sum(np.cos(ksRS), axis=-1)
         pfs = np.exp(1j * ksRS)
 
-        self._t = t
-        self._J = J
-        self._K = K
-        self._G = G
-        self._filling = filling
         self.numkx = numkx
         self.numky = numky
-        self.numks = numkx * numky
+        self.numk = numkx * numky
+
+        # Cache these data for reuse
         self._fks = fks
         self._pfs = pfs
 
-    def UpdateModelParams(self, t=None, J=None, K=None, G=None, filling=None):
-        """
-        Update the model parameters
+    def _HMSolver(self, t, mu, rescaled_averages):
+        # Construct the Mean-Field Hamiltonian Matrix according to the input
+        # parameters.
 
-        See also
-        __init__()
-        """
-
-        if t is not None:
-            self._t = t
-        if J is not None:
-            self._J = J
-        if K is not None:
-            self._K = K
-        if G is not None:
-            self._G = G
-        if filling is not None:
-            self._filling = filling
-
-    def _HSolver(self, mu, coeff_matrix):
-        hopping_plus = self._t * self._fks + mu / 2
-        hopping_minus = -hopping_plus
+        hopping = t * self._fks + mu / 2
         pairing = np.tensordot(
-            self._pfs,
-            np.tensordot(coeff_matrix, PMS, axes=(0, 0)),
+            self._pfs, np.tensordot(rescaled_averages, PMS, axes=(0, 0)),
             axes=(2, 0)
         )
+        pairing_dagger = np.transpose(pairing.conj(), axes=(0, 1, 3, 2))
 
-        HKs = np.zeros((self.numkx, self.numky, 4, 4), dtype=np.complex128)
-        HKs[:, :, 0, 0] = hopping_minus
-        HKs[:, :, 1, 1] = hopping_minus
-        HKs[:, :, 2, 2] = hopping_plus
-        HKs[:, :, 3, 3] = hopping_plus
-        HKs[:, :, 0:2, 2:] = pairing
-        HKs[:, :, 2:, 0:2] = np.transpose(pairing.conj(), axes=(0, 1, 3, 2))
+        HMs = np.zeros((self.numkx, self.numky, 4, 4), dtype=np.complex128)
+        HMs[:, :, 0, 0] = -hopping
+        HMs[:, :, 1, 1] = -hopping
+        HMs[:, :, 2, 2] = hopping
+        HMs[:, :, 3, 3] = hopping
+        HMs[:, :, 0:2, 2:] = pairing
+        HMs[:, :, 2:, 0:2] = pairing_dagger
 
-        ws, vs = np.linalg.eigh(HKs)
+        # Diagonalize the Mean-Field Hamiltonian Matrix and return these
+        # matrices that corresponding to the Bogoliubov transformation
+        ws, vs = np.linalg.eigh(HMs)
         U0 = vs[:, :, 0:2, 0:2]
         U1 = vs[:, :, 2:, 0:2]
-        U0_dag = np.transpose(U0.conj(), axes=(0, 1, 3, 2))
-        return U0, U0_dag, U1
+        U0d = np.transpose(U0.conj(), axes=(0, 1, 3, 2))
+        return U0, U0d, U1
 
-    def _CoeffMatrixGenerator(self, averages):
-        # Combine the model parameters J, K, G with these operators' averages
-        # to get the total coefficient
+    def AllAverages(self, t, mu, rescaled_averages):
+        """
+        Calculate the ground-state averages of these hole-pairing and
+        particle-number operators
 
-        J = self._J
-        K = self._K / 4
-        G = self._G / 2
+        Parameters
+        ----------
+        t : float
+            The hopping amplitude
+        mu : float
+            Chemical potential
+        rescaled_averages : 2-D array with shape (4, 3)
+            Mean-Field ansatz of the rescaled ground-state averages of these
+            hole-pairing operators
+
+        Returns
+        -------
+        filling : float
+            The ground-state average of the particle-number operators
+        averages : 2-D array with shape (4, 3)
+            The ground-state averages of these hole-pairing operators
+        """
+
+        U0, U0d, U1 = self._HMSolver(t, mu, rescaled_averages)
+
+        ppairings = np.stack(
+            [self._PairingTermAverage(U0d, U1, which=i) for i in range(4)]
+        ) / self.numk
+        hpairings = ppairings.conj()
+
+        filling = self._ParticleNumberAverage(U0d, U0) / self.numk
+        return filling, hpairings
+
+    def RescaleAverages(self, J, K, G, averages):
+        """
+        Rescale the ground-state averages of these hole-pairing operators
+
+        Parameters
+        ----------
+        J : float
+            The coefficient of Heisenberg term
+        K : float
+            The coefficient of the Kitaev term
+        G : float
+            The coefficient of the Gamma term
+        averages : 2-D array with shape (4, 3)
+            The original ground-state averages of these hole-pairing operators
+
+        Returns
+        -------
+        res : 2-D array with shape(4, 3)
+            The rescaled ground-state averages of these hole-pairing operators
+        """
+
+        K = K / 4
+        G = G / 2
 
         delta1, delta2, delta3 = -(J + K) * averages[0]
 
@@ -148,183 +172,162 @@ class MeanFieldSolver:
             [d1z, d2z, d3z]
         ])
 
-    def _ParticleNumber(self, Ud, U):
+    def _ParticleNumberAverage(self, Ud, U):
+        # Calculate the ground-state average of the particle-number operator
+
         tmp = np.matmul(Ud, U)
         return (np.sum(tmp[:, :, 0, 0]) + np.sum(tmp[:, :, 1, 1])).real
 
-    def _PairingTermAverage(self, U0_dag, U1, which=0):
-        tmp = np.matmul(U0_dag, np.matmul(PMS[which], U1))
-        tmp = tmp[:, :, 0, 0] + tmp[:, :, 1, 1]
-        return np.tensordot(self._pfs, tmp, axes=([0, 1], [0, 1]))
+    def _PairingTermAverage(self, U0d, U1, *, which):
+        # Calculate the ground-state averages of these particle-pairing
+        # operators
+        # The `which` parameter should be only in (0, 1, 2, 3)
+        # 0 correspond to singlet-pairing and 1, 2, 3 correspond to
+        # three triplet-pairing
 
-    def _AllAverages(self, U0_dag, U1):
-        As = []
-        for PM in PMS:
-            tmp = np.matmul(U0_dag, np.matmul(PM, U1))
-            tmp = tmp[:, :, 0, 0] + tmp[:, :, 1, 1]
-            As.append(np.tensordot(self._pfs, tmp, axes=([0, 1], [0, 1])))
-        return np.stack(As)
+        tmp = np.matmul(U0d, np.matmul(PMS[which], U1))
+        return np.tensordot(
+            self._pfs, tmp[:, :, 0, 0] + tmp[:, :, 1, 1], axes=([0, 1], [0, 1])
+        )
 
-    def _sPairingCore(self, params_in, find_root=True):
+    def _RootFunc(self, params_in, dtype, t, J, K, G, filling):
         mu = params_in[0]
-        tmp = np.zeros((4, 3), dtype=np.complex128)
-        tmp[0, :] = params_in[1] + params_in[2] * 1j
-
-        coeff_matrix = self._CoeffMatrixGenerator(tmp)
-        U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
-
-        pairing0 = self._PairingTermAverage(U0_dag, U1, which=0)
-        pairing0 = pairing0.conj() / self.numks
-        outputs = np.mean(pairing0)
-
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
-
-        if find_root:
-            difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self._filling
-            difference[1::2] = outputs.real - params_in[1::2]
-            difference[2::2] = outputs.imag - params_in[2::2]
-            return difference
+        if dtype == "real":
+            averages_in = params_in[1:]
+        elif dtype == "imag":
+            averages_in = params_in[1:] * 1j
         else:
-            return filling_out, outputs
+            averages_in = params_in[1::2] * np.exp(2j * np.pi * params_in[2::2])
+        tmp = averages_in.reshape((4, 3))
 
-    def _pPairingCore(self, params_in, find_root=True):
-        mu = params_in[0]
-        tmp = np.zeros((4, 3), dtype=np.complex128)
-        tmp[1, :] = params_in[1] + params_in[2] * 1j
-        tmp[2, :] = params_in[3] + params_in[4] * 1j
-        tmp[3, :] = params_in[5] + params_in[6] * 1j
+        rescaled_averages = self.RescaleAverages(J, K, G, tmp)
+        filling_out, averages_out = self.AllAverages(t, mu, rescaled_averages)
 
-        coeff_matrix = self._CoeffMatrixGenerator(tmp)
-        U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
-
-        As = []
-        for i in range(1, 4):
-            tmp = np.matmul(U0_dag, np.matmul(PMS[i], U1))
-            tmp = tmp[:, :, 0, 0] + tmp[:, :, 1, 1]
-            As.append(np.tensordot(self._pfs, tmp, axes=([0, 1], [0, 1])))
-        As = np.stack(As).conj() / self.numks
-        outputs = np.mean(As, axis=-1)
-
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
-
-        if find_root:
-            difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self._filling
-            difference[1::2] = outputs.real - params_in[1::2]
-            difference[2::2] = outputs.imag - params_in[2::2]
-            return difference
+        averages_diff = averages_out.flatten() - averages_in
+        diff = np.zeros(params_in.shape, dtype=np.float64)
+        diff[0] = filling_out - filling
+        if dtype == "real" or dtype == "imag":
+            diff[1:] = np.absolute(averages_diff)
         else:
-            return filling_out, outputs
+            diff[1::2] = averages_diff.real
+            diff[2::2] = averages_diff.imag
+        return diff
 
-    def _didPairingCore(self, params_in, find_root=True):
-        mu = params_in[0]
-        tmp = np.zeros((4, 3), dtype=np.complex128)
-        tmp[0, 0] = params_in[1] + params_in[2] * 1j
-        tmp[0, 1] = np.exp(2j*np.pi/3) * tmp[0, 0]
-        tmp[0, 2] = np.exp(-2j*np.pi/3) * tmp[0, 0]
+    def __call__(self, delta, order_params_num, dtype="", J=0.0, K=0.0, G=0.0):
+        t, filling = delta, 1 - delta
 
-        coeff_matrix = self._CoeffMatrixGenerator(tmp)
-        U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
-
-        pairing0 = self._PairingTermAverage(U0_dag, U1, which=0)
-        pairing0 = pairing0.conj() / self.numks
-
-        outputs = pairing0[0]
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
-
-        if find_root:
-            difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self._filling
-            difference[1::2] = outputs.real - params_in[1::2]
-            difference[2::2] = outputs.imag - params_in[2::2]
-            return difference
+        mu = np.random.randn()
+        amplitude = np.absolute(np.random.randn(order_params_num))
+        if dtype == "real" or dtype == "imag":
+            x0 = np.zeros(1 + order_params_num, dtype=np.float64)
+            x0[0] = mu
+            x0[1:] = amplitude
         else:
-            return filling_out, outputs
-
-    def _gPairingCore(self, params_in, find_root=True):
-        mu = params_in[0]
-        tmp = np.reshape(params_in[1::2] + params_in[2::2]*1j, newshape=(4, 3))
-
-        coeff_matrix = self._CoeffMatrixGenerator(tmp)
-        U0, U0_dag, U1 = self._HSolver(mu, coeff_matrix)
-
-        pairings = self._AllAverages(U0_dag, U1).conj() / self.numks
-
-        outputs = pairings.flatten()
-        filling_out = self._ParticleNumber(U0_dag, U0) / self.numks
-
-        if find_root:
-            difference = np.zeros(params_in.shape, dtype=np.float64)
-            difference[0] = filling_out - self._filling
-            difference[1::2] = outputs.real - params_in[1::2]
-            difference[2::2] = outputs.imag - params_in[2::2]
-            return difference
-        else:
-            return filling_out, outputs
-
-    def __call__(self, delta=0., J=None, K=None, G=None, ptype=None, file=None):
-        self.UpdateModelParams(t=delta, J=J, K=K, G=G, filling=1-delta)
-
-        if ptype == "s":
-            CoreFunc = self._sPairingCore
-            x0 = np.random.randn(3)
-            pairing_type = "s weave"
-        elif ptype == "d+id":
-            CoreFunc = self._didPairingCore
-            x0 = np.random.randn(3)
-            pairing_type = "d+id weave"
-        elif ptype == "p":
-            CoreFunc = self._pPairingCore
-            x0 = np.random.randn(7)
-            pairing_type = "p weave"
-        else:
-            CoreFunc = self._gPairingCore
-            x0 = np.random.randn(25)
-            pairing_type = None
+            x0 = np.zeros(1 + 2 * order_params_num, dtype=np.float64)
+            x0[0] = mu
+            x0[1::2] = amplitude
+            x0[2::2] = np.random.random(order_params_num)
+        extra_args = (dtype, t, J, K, G, filling)
 
         t0 = time()
-        res = root(CoreFunc, x0)
+        res = root(self._RootFunc, x0=x0, args=extra_args)
         t1 = time()
 
-        print(
-            f"J={self._J}, K={self._K}, G={self._G}, delta={delta}",
-            file=file
-        )
-        print(f"The assumed pairing type: {pairing_type}", file=file)
-        if res.success:
-            print("res.fun:", res.fun, file=file)
-            print("res.success:", res.success, file=file)
-            print("res.x:", res.x, file=file)
-        else:
-            print("Failed to find a self-consistent solution!", file=file)
-        print(f"The time spend on finding the solution: {t1-t0}s", file=file)
-        print('=' * 80, file=file, flush=True)
+        params = "J={0:.2f}, K={1:.2f}, G={2:.2f}, delta={3:.2f}"
+        print("The current model parameters:", params.format(J, K, G, delta))
 
-        return res
+        indent = " " * 4
+        if res.success:
+            sol = res.x
+            print("The chemical potential: {0: .5f}".format(sol[0]))
+            print("The order parameters:")
+            if dtype == "real":
+                for i in range(1, len(sol)):
+                    print(indent + "{0: .5f}".format(sol[i]))
+            elif dtype == "imag":
+                for i in range(1, len(sol)):
+                    print(indent + "{0: .5f}j".format(sol[i]))
+            else:
+                for i in range(1, len(sol), 2):
+                    print(
+                        indent + "({0: .5f}, {1: .5f})".format(sol[i], sol[i+1])
+                    )
+        else:
+            print("Failed to find a self-consistent solution!")
+        print("The time spend on finding the solution: {0}s".format(t1 - t0))
+        print("=" * 80, flush=True)
+
+
+class SWaveMeanFieldSolver(BaseMeanFieldSolver):
+    def _RootFunc(self, params_in, dtype, t, J, K, G, filling):
+        mu = params_in[0]
+        if dtype == "real":
+            averages_in = params_in[1]
+        elif dtype == "imag":
+            averages_in = params_in[1] * 1j
+        else:
+            averages_in = params_in[1] * np.exp(2j * np.pi * params_in[2])
+        tmp = -(J + K/4) * averages_in
+        rescaled_averages =  np.array(
+            [[tmp, tmp, tmp], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        )
+
+        U0, U0d, U1 = self._HMSolver(t, mu, rescaled_averages)
+        ppairing0 = self._PairingTermAverage(U0d, U1, which=0) / self.numk
+        hpairing0 = ppairing0.conj()
+        filling_out = self._ParticleNumberAverage(U0d, U0) / self.numk
+
+        averages_diff = np.mean(hpairing0) - averages_in
+        diff = np.zeros(params_in.shape, dtype=np.float64)
+        diff[0] = filling_out - filling
+        if dtype == "real" or dtype == "imag":
+            diff[1] = np.absolute(averages_diff)
+        else:
+            diff[1] = averages_diff.real
+            diff[2] = averages_diff.imag
+        return diff
+
+
+class PWaveMeanFieldSolver(BaseMeanFieldSolver):
+    def _RootFunc(self, params_in, dtype, t, J, K, G, filling):
+        mu = params_in[0]
+        if dtype == "real":
+            averages_in = params_in[1:]
+            tmp = np.zeros((4, 3), dtype=np.float64)
+        elif dtype == "imag":
+            averages_in = params_in[1:] * 1j
+            tmp = np.zeros((4, 3), dtype=np.complex128)
+        else:
+            averages_in = params_in[1::2] * np.exp(2j * np.pi * params_in[2::2])
+            tmp = np.zeros((4, 3), dtype=np.complex128)
+        tmp[1, :] = averages_in[0]
+        tmp[2, :] = averages_in[1]
+        tmp[3, :] = averages_in[2]
+
+        rescaled_averages = self.RescaleAverages(J, K, G, tmp)
+        U0, U0d, U1 = self._HMSolver(t, mu, rescaled_averages)
+
+        ppairings = np.stack(
+            [self._PairingTermAverage(U0d, U1, which=i) for i in range(1, 4)]
+        ) / self.numk
+        hpairings = ppairings.conj()
+        filling_out = self._ParticleNumberAverage(U0d, U0) / self.numk
+
+        averages_diff = np.mean(hpairings, axis=1) - averages_in
+
+        diff = np.zeros(params_in.shape, dtype=np.float64)
+        diff[0] = filling_out - filling
+        if dtype == "real" or dtype == "imag":
+            diff[1:] = np.absolute(averages_diff)
+        else:
+            diff[1::2] = averages_diff.real
+            diff[2::2] = averages_diff.imag
+        return diff
 
 
 if __name__ == "__main__":
-    start_time = "Program start running at: {0:%Y-%m-%d %H:%M:%S}"
-    start_time = start_time.format(datetime.now())
-    msg = "The time spend on initializing the solver: {0}s"
-    file = "log/log_J_{0:.1f}_K_{1:.1f}_G_{2:.1f}.txt"
-
-    delta, J, K, G = 0.4, 1.6, -0.5, 0.0
-
-    t0 = time()
-    solver = MeanFieldSolver(J=J, K=K, G=G, numkx=100)
-    t1 = time()
-    res = solver(delta=delta, ptype="d+id")
-
-
-
-    # for J in np.arange(-2.0, 2.1, 0.1):
-    #     with open(file.format(J, K, G), mode='a', buffering=1) as fp:
-    #         print(start_time.format(datetime.now()), file=fp)
-    #         print(msg.format(t1-t0), file=fp, flush=True)
-    #         print('#' * 80, file=fp, flush=True)
-    #
-    #         for delta in np.arange(0.0, 0.5, 0.01):
-    #             for i in range(5):
-    #                 res = solver(delta=delta, J=J, ptype='s', file=fp)
+    solver = PWaveMeanFieldSolver(100)
+    for i in range(10):
+        solver(
+            delta=0.2, K=-0.5, G=0.0, order_params_num=3, dtype="real"
+        )
