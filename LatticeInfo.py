@@ -32,4 +32,3 @@ BS = 2 * np.pi * np.array(
 AS.setflags(write=False)
 BS.setflags(write=False)
 RS.setflags(write=False)
-

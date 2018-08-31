@@ -217,7 +217,8 @@ class BaseMeanFieldSolver:
         t, filling = delta, 1 - delta
 
         mu = np.random.randn()
-        amplitude = np.absolute(np.random.randn(order_params_num))
+        # amplitude = np.absolute(np.random.randn(order_params_num))
+        amplitude = np.random.random(order_params_num)
         if dtype == "real" or dtype == "imag":
             x0 = np.zeros(1 + order_params_num, dtype=np.float64)
             x0[0] = mu
@@ -325,9 +326,46 @@ class PWaveMeanFieldSolver(BaseMeanFieldSolver):
         return diff
 
 
+class DWaveMeanFieldSolver(BaseMeanFieldSolver):
+    def _RootFunc(self, params_in, dtype, t, J, K, G, filling):
+        mu = params_in[0]
+        if dtype == "real":
+            averages_in = params_in[1]
+        elif dtype == "imag":
+            averages_in = params_in[1] * 1j
+        else:
+            averages_in = params_in[1] * np.exp(2j * np.pi * params_in[2])
+        d1 = averages_in
+        d2 = d1 * np.exp(2j * np.pi / 3)
+        d3 = d1 * np.exp(-2j * np.pi / 3)
+        tmp = np.array([[d1, d2, d3], [0, 0, 0], [0, 0, 0], [0, 0, 0]])
+
+        rescaled_averages = self.RescaleAverages(J, K, G, tmp)
+        U0, U0d, U1 = self._HMSolver(t, mu, rescaled_averages)
+
+        ppairing0 = self._PairingTermAverage(U0d, U1, which=0) / self.numk
+        hpairing0 = ppairing0.conj()
+        filling_out = self._ParticleNumberAverage(U0d, U0) / self.numk
+
+        averages_diff = hpairing0[0] - averages_in
+        diff = np.zeros(params_in.shape, dtype=np.float64)
+        diff[0] = filling_out - filling
+        if dtype == "real" or dtype == "imag":
+            diff[1] = np.absolute(averages_diff)
+        else:
+            diff[1] = averages_diff.real
+            diff[2] = averages_diff.imag
+        return diff
+
+
 if __name__ == "__main__":
-    solver = PWaveMeanFieldSolver(100)
+    solver = BaseMeanFieldSolver(100)
     for i in range(10):
         solver(
-            delta=0.2, K=-0.5, G=0.0, order_params_num=3, dtype="real"
+            delta = 0.2,
+            # J = 0.1,
+            K=-1.0,
+            G = 0.6,
+            order_params_num=12,
+            dtype="complex"
         )

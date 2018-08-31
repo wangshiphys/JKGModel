@@ -13,132 +13,153 @@ from HamiltonianPy.termofH import SpinInteraction
 from LatticeInfo import AS
 
 
-class SpinModelSolver:
+class JKGModelSolver:
     """
-    Exact diagonalizing of the J-K-Gamma model on triangular lattice
+    Exact diagonalization of the J-K-Gamma spin model on triangular lattice
+
+    Attributes
+    ----------
+    num1: int
+        The number of lattice site along the first translation vector
+    num2: int
+        The number of lattice site along the second translation vector
+    site_num: int
+        The number of lattice site of the system
     """
 
-    def __init__(self, numx=4, numy=None):
+    def __init__(self, num1, num2=None):
         """
         Customize the newly created instance
 
         Parameters
         ----------
-        numx : int, optional
-            The number of lattice sites along the first translation vector
-            default: 4
-        numy : int, optional
-            The number of lattice sites along the second translation vector
-            default: numy = numx
+        num1 : int
+            The number of lattice site along the first translation vector
+        num2 : int, optional
+            The number of lattice site along the second translation vector
+            default: num2 = num1
         """
 
-        if not isinstance(numx, int) or numx < 1:
-            raise ValueError("The `numx` parameter should be positive integer!")
-        if not isinstance(numy, int):
-            if numy is None:
-                numy = numx
-            else:
-                raise ValueError(
-                    "The `numy` parameter should be positive integer or None!"
-                )
-        elif numy < 1:
-            raise ValueError(
-                "The `numy` parameter should be positive integer or None!"
-            )
+        assert isinstance(num1, int) and num1 >= 1
+        assert (num2 is None) or (isinstance(num2, int) and num2 >= 1)
 
-        self.numx = numx
-        self.numy = numy
-        self.site_num = numx * numy
+        if num2 is None:
+            num2 = num1
+        self._num1 = num1
+        self._num2 = num2
+        self._site_num = num1 * num2
+
+    @property
+    def num1(self):
+        """
+        The `num1` attribute
+        """
+
+        return self._num1
+
+    @property
+    def num2(self):
+        """
+        The `num2` attribute
+        """
+
+        return self._num2
+
+    @property
+    def site_num(self):
+        """
+        The `site_num` attribute
+        """
+
+        return self._site_num
 
     def _bonds(self):
         # Generate all nearest neighbor bonds
         # Categorize the nearest neighbor bonds according to their direction
 
-        sites = np.matmul(
-            [[x, y] for x in range(self.numx) for y in range(self.numy)], AS
+        points = np.matmul(
+            [[x, y] for x in range(self._num1) for y in range(self._num2)], AS
         )
-        tvs = AS * np.array([[self.numx], [self.numy]])
+        vectors = AS * np.array([[self._num1], [self._num2]])
 
-        cluster = Lattice(points=sites, tvs=tvs)
+        cluster = Lattice(points=points, vectors=vectors)
         intra, inter = cluster.bonds(nth=1)
 
-        atol = 1e-3
-        xbonds = []
-        ybonds = []
-        zbonds = []
-        alphas = np.array([[0, 180], [-120, 60], [-60, 120]])
-        for bond in intra+inter:
+        bonds_x = []
+        bonds_y = []
+        bonds_z = []
+        for bond in intra + inter:
             p0, p1 = bond.getEndpoints()
-            azimuth = bond.getAzimuth()
-            judge = np.any(np.abs(azimuth - alphas) < atol, axis=1)
-
             index0 = cluster.getIndex(site=p0, fold=True)
             index1 = cluster.getIndex(site=p1, fold=True)
             bond_index = (index0, index1)
 
-            if judge[0]:
-                xbonds.append(bond_index)
-            elif judge[1]:
-                ybonds.append(bond_index)
-            elif judge[2]:
-                zbonds.append(bond_index)
+            azimuth = int(round(bond.getAzimuth()))
+            if azimuth in (-180, 0):
+                bonds_x.append(bond_index)
+            elif azimuth in (-120, 60):
+                bonds_y.append(bond_index)
+            elif azimuth in (-60, 120):
+                bonds_z.append(bond_index)
             else:
                 raise ValueError("Invalid bond direction!")
 
-        return xbonds, ybonds, zbonds
+        return bonds_x, bonds_y, bonds_z
 
     def _TermMatrix(self):
         # Calculate the matrix representation of the J, K, Gamma term
-        # respectively. Save the matrix to temp file.
+        # Save these matrices on the file system
         # If the the matrix already exists on the file system, then load them
-        # instead of calculating them.
+        # instead of calculating them
 
-        tmp_dir = "tmp/"
-        Path(tmp_dir).mkdir(parents=True, exist_ok=True)
+        directory = Path("tmp")
+        name_template = "TRIANGLE_NUM1={0}_NUM2={1}_H{{0}}.npz".format(
+            self._num1, self._num2
+        )
+        # print(name_template)
+        # The slash operator helps create child paths
+        file_HJ = directory / name_template.format("J")
+        file_HK = directory / name_template.format("K")
+        file_HG = directory / name_template.format("G")
 
-        name_template = tmp_dir + "TRIANGLE_NUMX_{0}_NUMY_{1}_H{2}.npz"
-        name_HJ = name_template.format(self.numx, self.numy, "J")
-        name_HK = name_template.format(self.numx, self.numy, "K")
-        name_HG = name_template.format(self.numx, self.numy, "G")
-
-        if Path(name_HJ).exists() and Path(name_HK).exists() and Path(
-                name_HG).exists():
-            HJ = load_npz(name_HJ)
-            HK = load_npz(name_HK)
-            HG = load_npz(name_HG)
+        if file_HJ.exists() and file_HK.exists() and file_HG.exists():
+            HJ = load_npz(file_HJ)
+            HK = load_npz(file_HK)
+            HG = load_npz(file_HG)
         else:
             all_bonds = self._bonds()
-            configs = [('x', 'y', 'z'), ('y', 'z', 'x'), ('z', 'x', 'y')]
-            site_num = self.site_num
+            configs = [("x", "y", "z"), ("y", "z", "x"), ("z", "x", "y")]
+            site_num = self._site_num
 
             HJ = HK = HG = 0.0
             for (gamma, alpha, beta), bonds in zip(configs, all_bonds):
                 for index0, index1 in bonds:
-                    SKM = SpinInteraction.matrixFunc(
+                    SKM = SpinInteraction.matrix_function(
                         [(index0, gamma), (index1, gamma)], site_num
                     )
                     HK += SKM
                     HJ += SKM
-                    HJ += SpinInteraction.matrixFunc(
+                    HJ += SpinInteraction.matrix_function(
                         [(index0, alpha), (index1, alpha)], site_num
                     )
-                    HJ += SpinInteraction.matrixFunc(
+                    HJ += SpinInteraction.matrix_function(
                         [(index0, beta), (index1, beta)], site_num
                     )
-                    HG += SpinInteraction.matrixFunc(
+                    HG += SpinInteraction.matrix_function(
                         [(index0, alpha), (index1, beta)], site_num
                     )
-                    HG += SpinInteraction.matrixFunc(
+                    HG += SpinInteraction.matrix_function(
                         [(index0, beta), (index1, alpha)], site_num
                     )
-            save_npz(name_HJ, HJ, compressed=False)
-            save_npz(name_HK, HK, compressed=False)
-            save_npz(name_HG, HG, compressed=False)
+            directory.mkdir(parents=True, exist_ok=True)
+            save_npz(file_HJ, HJ, compressed=False)
+            save_npz(file_HK, HK, compressed=False)
+            save_npz(file_HG, HG, compressed=False)
 
-        # Caching these matrices in the SpinModelSolver instance for reuse
+        # Caching these matrices for reuse
         self._cache = (HJ, HK, HG)
 
-    def GSE(self, J=-1.0, K=0.0, G=0.0, *, tol=0.0):
+    def GSE(self, J=1.0, K=0.0, G=0.0, tol=0.0):
         """
         Calculate the ground state energy of the model Hamiltonian
 
@@ -146,7 +167,7 @@ class SpinModelSolver:
         ---------
         J : float, optional
             The coefficient of the Heisenberg term
-            default: -1.0
+            default: 1.0
         K : float, optional
             The coefficient of the Kitaev term
             default: 0.0
@@ -175,7 +196,7 @@ class SpinModelSolver:
         gse = eigsh(H, k=1, which="SA", return_eigenvectors=False, tol=tol)
         t1 = time()
 
-        return t1 - t0, gse[0] / self.site_num
+        return t1 - t0, gse[0] / self._site_num
 
     __call__ = GSE
 
@@ -188,6 +209,7 @@ def derivation(xs, ys, nth=1):
     ----------
     xs : 1-D array
         The independent variables
+        `xs` is assumed to be sorted in ascending order
     ys : 1-D array
         The dependent variables
     nth : int, optional
@@ -202,47 +224,21 @@ def derivation(xs, ys, nth=1):
         The n-th derivatives corresponding the returned xs
     """
 
-    if not isinstance(nth, int) or nth < 0:
-        raise ValueError("The `nth` parameter should be non-negative integer!")
+    assert isinstance(nth, int) and nth > 0
 
+    xs = np.array(xs)
+    ys = np.array(ys)
     for i in range(nth):
+        # The following line calculate all the (ys[i]-ys[i-1])/(xs[i]-xs[i-1])
+        # Equivalent to the following code:
+        # dys = np.array([ys[i] - ys[i-1] for i in range(1, len(ys))])
+        # dxs = np.array([xs[i] - xs[i-1] for i in range(1, len(xs))])
+        # ys = dys / dxs
         ys = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
+        # Equivalent to the following code:
+        # xs = np.array([(xs[i]+xs[i-1])/2 for i in range(1, len(xs))])
         xs = (xs[1:] + xs[:-1]) / 2
     return xs, ys
-
-
-def visualization(ax, alphas, Es):
-    """
-    Plot Es versus alphas as well as the second derivatives of Es versus alphas.
-    """
-
-    color0 = "#3465A4"
-    color1 = "#F57900"
-    fontdict = {"fontsize": 12}
-
-    ax_Es = ax
-    ax_d2Es = ax.twinx()
-
-    alphas_new, d2Es = derivation(alphas, Es, nth=2)
-    d2Es = -d2Es / (np.pi ** 2)
-    line_Es, = ax_Es.plot(alphas, Es, color=color0)
-    line_d2Es, = ax_d2Es.plot(alphas_new, d2Es, color=color1)
-
-    ax_Es.set_ylabel('E', color=color0, fontdict=fontdict)
-    ax_Es.tick_params('y', colors=color0)
-    ax_d2Es.set_ylabel(r"$-d^2E/d\alpha^2$", color=color1, fontdict=fontdict)
-    ax_d2Es.tick_params('y', colors=color1)
-
-    ax_Es.set_title(
-        r"$E\ and\ -\frac{d^2E}{d\alpha^2}\ vs\ \alpha$", fontdict=fontdict
-    )
-    ax_Es.set_xlim(alphas[0], alphas[-1])
-    ax_Es.set_xlabel(r"$\alpha(/\pi)$")
-    ax_Es.legend(
-        (line_Es, line_d2Es),
-        ('E', r"$-\frac{d^2E}{d\alpha^2}$"),
-        loc = 0
-    )
 
 
 def ArgParser():
@@ -251,97 +247,178 @@ def ArgParser():
     """
 
     parser = argparse.ArgumentParser(
-        description="Parse command line arguments."
+        description="Parse command line arguments"
     )
 
     parser.add_argument(
-        "--beta", type=float, default=0.5,
-        help="The Gamma term parameter (Default: %(default)s)."
+        "--param", type=float,
+        help="The independent model parameter"
     )
     parser.add_argument(
         "--step", type=float, default=0.01,
-        help="The step of alphas (Default: %(default)s)."
+        help="The step of independent parameter (Default: %(default)s)."
     )
     parser.add_argument(
-        "--numx", type=int, default=4,
-        help="The number of sites along a0 direction (Default: %(default)s)."
+        "--num1", type=int, default=3,
+        help="The number of site along a0 direction (Default: %(default)s)."
     )
     parser.add_argument(
-        "--numy", type=int, default=4,
-        help="The number of sites along a1 direction (Default: %(default)s)."
+        "--num2", type=int, default=4,
+        help="The number of site along a1 direction (Default: %(default)s)."
     )
 
     args = parser.parse_args()
-    return args.numx, args.numy, args.step, args.beta
+    return args.num1, args.num2, args.step, args.param
 
 
-def FileNames(numx, numy, step, beta):
-    """
-    Return the file names for log file, data file and figure file
-    """
-
-    log_dir = "log/SpinModel/"
-    data_dir = "data/SpinModel/"
-    fig_dir = "fig/SpinModel/"
-    Path(log_dir).mkdir(parents=True, exist_ok=True)
-    Path(data_dir).mkdir(parents=True, exist_ok=True)
-    Path(fig_dir).mkdir(parents=True, exist_ok=True)
-
-    template = "{0}_numx_{1}_numy_{2}_step_{3:.3f}_beta_{4:.3f}.{5}"
-    log_file = log_dir + template.format("Log", numx, numy, step, beta, "txt")
-    data_file = data_dir + template.format("GSE", numx, numy, step, beta, "npy")
-    fig_file = fig_dir + template.format("GSE", numx, numy, step, beta, "png")
-    return log_file, data_file, fig_file
-
-
-def BreakPointRecovery(data_file, step):
-    """
-    Recovery the program state from break point
-    """
-
-    if Path(data_file).exists():
-        res = np.load(data_file)
-    else:
-        alphas = np.arange(0, 2.2, step=step)
-        Es = np.zeros(alphas.shape) + np.nan
-        res = np.array([alphas, Es])
-    num = res.shape[1]
-    return num, res
-
-
-def GlobalPhaseDiagram(numx=3, numy=4, step=0.01, beta=0.5):
+def PhaseDiagramVsAlphas(num1=3, num2=4, step=0.01, beta=0.5, tol=0.0):
     now_time = "{0:%Y-%m-%d %H:%M:%S}".format(datetime.now())
     header = "Program start running at: " + now_time + "\n" + "#" * 80 + "\n\n"
     log_template = "The {ith}th alpha\nThe current alpha: {alpha:.3f}\n"
     log_template += "The ground state energy: {gse}\n"
     log_template += "The time spend on the GSE: {dt}s\n" + "=" * 80 + "\n"
 
-    log_file, data_file, fig_file = FileNames(numx, numy, step, beta)
-    solver = SpinModelSolver(numx=numx, numy=numy)
-    num_alpha, res = BreakPointRecovery(data_file, step)
+    dir_log = Path("log/SpinModel/")
+    dir_data = Path("data/SpinModel/")
+    dir_fig = Path("fig/SpinModel/")
+    dir_log.mkdir(parents=True, exist_ok=True)
+    dir_data.mkdir(parents=True, exist_ok=True)
+    dir_fig.mkdir(parents=True, exist_ok=True)
+
+    template = "{0}_num1={1}_num2={2}_step={3:.3f}_beta={4:.3f}.{5}"
+    file_log = dir_log / template.format("Log", num1, num2, step, beta, "txt")
+    file_data = dir_data / template.format("GSE", num1, num2, step, beta, "npy")
+    file_fig = dir_fig / template.format("GSE", num1, num2, step, beta, "png")
+
+    # Break point recovery
+    if Path(file_data).exists():
+        res = np.load(file_data)
+    else:
+        alphas = np.arange(0, 2.1, step=step)
+        Es = np.zeros(alphas.shape) + np.nan
+        res = np.array([alphas, Es])
+    alpha_num = res.shape[1]
+
+    solver = JKGModelSolver(num1=num1, num2=num2)
     Js = np.sin(beta * np.pi) * np.sin(res[0] * np.pi)
     Ks = np.sin(beta * np.pi) * np.cos(res[0] * np.pi)
     G = np.cos(beta * np.pi)
 
-    fp = open(log_file, mode="a", buffering=1)
-    fp.write(header)
-    for i in range(num_alpha):
-        if np.isnan(res[1, i]):
-            dt, res[1, i] = solver.GSE(J=Js[i], K=Ks[i], G=G, tol=1e-10)
-            np.save(data_file, res)
-            msg = log_template.format(
-                ith=i, alpha=res[0, i], gse=res[1, i], dt=dt
-            )
-            fp.write(msg)
-    fp.close()
+    with open(file_log, mode="a", buffering=1) as fp:
+        fp.write(header)
+        for i in range(alpha_num):
+            if np.isnan(res[1, i]):
+                dt, res[1, i] = solver.GSE(J=Js[i], K=Ks[i], G=G, tol=tol)
+                np.save(file_data, res)
+                msg = log_template.format(
+                    ith=i, alpha=res[0, i], gse=res[1, i], dt=dt
+                )
+                fp.write(msg)
 
-    fig, ax = plt.subplots()
-    visualization(ax, res[0], res[1])
-    fig.savefig(fig_file)
-    plt.close("all")
+    color0 = "#3465A4"
+    color1 = "#F57900"
+    fontsize = 12
+    fig, ax_Es = plt.subplots()
+    ax_d2Es = ax_Es.twinx()
+
+    alphas_new, d2Es = derivation(res[0], res[1], nth=2)
+    d2Es = -d2Es / (np.pi ** 2)
+    line_Es, = ax_Es.plot(res[0], res[1], color=color0)
+    line_d2Es, = ax_d2Es.plot(alphas_new, d2Es, color=color1)
+
+    ax_Es.set_ylabel("E", color=color0, fontsize=fontsize)
+    ax_Es.tick_params("y", colors=color0)
+    ax_d2Es.set_ylabel(r"$-d^2E/d\alpha^2$", color=color1, fontsize=fontsize)
+    ax_d2Es.tick_params("y", colors=color1)
+
+    title = r"$E$ and $-\frac{d^2E}{d\alpha^2}$ vs $\alpha$" + "\n"
+    title += r"At $\beta$ = {0:.3f}".format(beta)
+    ax_Es.set_title(title, fontsize=fontsize)
+    ax_Es.set_xlim(res[0, 0], res[0, -1])
+    ax_Es.set_xlabel(r"$\alpha(/\pi)$")
+    ax_Es.legend(
+        (line_Es, line_d2Es), ("E", r"$-\frac{d^2E}{d\alpha^2}$"), loc = 0
+    )
+    fig.savefig(file_fig)
+    # plt.close("all")
+    plt.show()
+
+
+def PhaseDiagramVsBetas(num1=3, num2=4, step=0.01, alpha=0.5, tol=0.0):
+    now_time = "{0:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+    header = "Program start running at: " + now_time + "\n" + "#" * 80 + "\n\n"
+    log_template = "The {ith}th beta\nThe current beta: {beta:.3f}\n"
+    log_template += "The ground state energy: {gse}\n"
+    log_template += "The time spend on the GSE: {dt}s\n" + "=" * 80 + "\n"
+
+    dir_log = Path("log/SpinModel/")
+    dir_data = Path("data/SpinModel/")
+    dir_fig = Path("fig/SpinModel/")
+    dir_log.mkdir(parents=True, exist_ok=True)
+    dir_data.mkdir(parents=True, exist_ok=True)
+    dir_fig.mkdir(parents=True, exist_ok=True)
+
+    template = "{0}_num1={1}_num2={2}_step={3:.3f}_alpha={4:.3f}.{5}"
+    file_log = dir_log / template.format("Log", num1, num2, step, alpha, "txt")
+    file_data = dir_data / template.format(
+        "GSE", num1, num2, step, alpha, "npy"
+    )
+    file_fig = dir_fig / template.format("GSE", num1, num2, step, alpha, "png")
+
+    if Path(file_data).exists():
+        res = np.load(file_data)
+    else:
+        betas = np.arange(0, 1.0, step=step)
+        Es = np.zeros(betas.shape) + np.nan
+        res = np.array([betas, Es])
+    beta_num = res.shape[1]
+
+    solver = JKGModelSolver(num1=num1, num2=num2)
+    Js = np.sin(res[0] * np.pi) * np.sin(alpha * np.pi)
+    Ks = np.sin(res[0] * np.pi) * np.cos(alpha * np.pi)
+    Gs = np.cos(res[0] * np.pi)
+
+    with open(file_log, mode="a", buffering=1) as fp:
+        fp.write(header)
+        for i in range(beta_num):
+            if np.isnan(res[1, i]):
+                dt, res[1, i] = solver.GSE(J=Js[i], K=Ks[i], G=Gs[i], tol=tol)
+                np.save(file_data, res)
+                msg = log_template.format(
+                    ith=i, beta=res[0, i], gse=res[1, i], dt=dt
+                )
+                fp.write(msg)
+
+    color0 = "#3465A4"
+    color1 = "#F57900"
+    fontsize = 12
+    fig, ax_Es = plt.subplots()
+    ax_d2Es = ax_Es.twinx()
+
+    betas_new, d2Es = derivation(res[0], res[1], nth=2)
+    d2Es = -d2Es / (np.pi ** 2)
+    line_Es, = ax_Es.plot(res[0], res[1], color=color0)
+    line_d2Es, = ax_d2Es.plot(betas_new, d2Es, color=color1)
+
+    ax_Es.set_ylabel("E", color=color0, fontsize=fontsize)
+    ax_Es.tick_params("y", colors=color0)
+    ax_d2Es.set_ylabel(r"$-d^2E/d\beta^2$", color=color1, fontsize=fontsize)
+    ax_d2Es.tick_params("y", colors=color1)
+
+    title = r"$E$ and $-\frac{d^2E}{d\beta^2}$ vs $\beta$" + "\n"
+    title += r"At $\alpha$ = {0:.3f}".format(alpha)
+    ax_Es.set_title(title, fontsize=fontsize)
+    ax_Es.set_xlim(res[0, 0], res[0, -1])
+    ax_Es.set_xlabel(r"$\beta(/\pi)$")
+    ax_Es.legend(
+        (line_Es, line_d2Es), ("E", r"$-\frac{d^2E}{d\beta^2}$"), loc = 0
+    )
+    fig.savefig(file_fig)
+    # plt.close("all")
+    plt.show()
 
 
 if __name__ == "__main__":
-    # numx, numy, step, beta = ArgParser()
-    numx, numy, step, beta = 3, 4, 0.005, 0.5
-    GlobalPhaseDiagram(numx=numx, numy=numy, step=step, beta=beta)
+    num1, num2, step, param = ArgParser()
+    # PhaseDiagramVsAlphas(num1=num1, num2=num2, step=step, beta=param)
+    PhaseDiagramVsBetas(num1=num1, num2=num2, step=step, alpha=param)
