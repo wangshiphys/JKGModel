@@ -1,5 +1,5 @@
 """
-The module provides the lattice information of the triangular lattice
+This module provides the lattice information of the triangular lattice
 
 
 AS : 2-D array
@@ -28,7 +28,3 @@ RS = np.array(
 BS = 2 * np.pi * np.array(
     [[1, -1 / np.sqrt(3)], [0, 2 / np.sqrt(3)]], dtype=np.float64
 )
-
-AS.setflags(write=False)
-BS.setflags(write=False)
-RS.setflags(write=False)
