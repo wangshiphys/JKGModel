@@ -161,64 +161,75 @@ class JKGModelSolver:
         # Caching these matrices for reuse
         self._cache = (HJ, HK, HG)
 
-    def GSE(self, J=1.0, K=0.0, G=0.0, tol=0.0):
+    def GS(self, alpha=0.5, beta=-0.5, tol=0, path=None, save_data=True):
         """
-        Calculate the ground state energy of the model Hamiltonian
+        Calculate the ground state energy and vector of the model Hamiltonian
 
-        Parameter
-        ---------
-        J : float, optional
-            The coefficient of the Heisenberg term
-            default: 1.0
-        K : float, optional
-            The coefficient of the Kitaev term
-            default: 0.0
-        G : float, optional
-            The coefficient of the Gamma term
-            default: 0.0
+        Parameters
+        ----------
+        alpha, beta : float, optional
+            Model parameters
+            The default values for alpha and beta are 0.5 and -0.5 respectively.
+
+            J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
+            K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
+            G = np.cos(alpha * np.pi)
+
+            J is the coefficient of the Heisenberg term
+            K is the coefficient of the Kitaev term
+            G is the coefficient of the Gamma term
         tol : float, optional
-            Relative accuracy for eigenvalues (stop criterion). The default
-            value 0 implies machine precision
-            default: 0.0
+            Relative accuracy for eigenvalues (stop criterion)
+            The default value 0 implies machine precision.
+        path : str, optional
+            If the ground state data for the given `alpha` and `beta` is
+            already exist, then `path` specify where to load the data;
+            If the ground state data does not exist, then `path` specify
+            where to save the result.
+            The default value `None` implies 'data/SpinModel/' relative to
+            the working directory.
+        save_data : boolean, optional
+            Whether to save the ground state energy and vector to file system
+            default: True
 
         Returns
         -------
-        dt : float
-            The time spend on calculating the ground state energy
+        alpha : float
+            The current alpha parameter
+        beta : float
+            The current beta parameter
         gse : float
-            The pre-site ground state energy
+            The ground state energy
         ket : array
             The ground state vector
         """
 
-        if not hasattr(self, "_cache"):
-            self._TermMatrix()
-        HJ, HK, HG = self._cache
-        H = J * HJ + K * HK + G * HG
+        data_dir = Path("data/SpinModel/") if path is None else Path(path)
 
-        t0 = time()
-        gse, ket = eigsh(H, k=1, which="SA", tol=tol)
-        t1 = time()
-
-        return t1 - t0, gse[0] / self._site_num, ket
-
-    def __call__(self, alpha=0.5, beta=0.5, tol=0.0):
-        data_dir = Path("data/SpinModel/")
-        data_dir.mkdir(parents=True, exist_ok=True)
         data_name = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
         full_name = data_dir / data_name.format(
             self._numx, self._numy, alpha, beta
         )
 
-        if not full_name.exists():
+        if full_name.exists():
+            with np.load(full_name) as fp:
+                alpha, beta = fp["parameters"]
+                gse = fp["gse"]
+                ket = fp["ket"]
+        else:
             J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
             K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
             G = np.cos(alpha * np.pi)
 
-            dt, gse, ket = self.GSE(J, K, G, tol=tol)
-            gse_info = np.array([alpha, beta, gse])
-            np.savez(full_name, gse=gse_info, ket=ket)
-            print("The current alpha = {0:.3f}".format(alpha))
-            print("The current beta = {0:.3f}".format(beta))
-            print("The time spend: {0}s".format(dt))
-            print("=" * 80, flush=True)
+            if not hasattr(self, "_cache"):
+                self._TermMatrix()
+            HJ, HK, HG = self._cache
+
+            gse, ket = eigsh(
+                J * HJ + K * HK + G * HG, k=1, which="SA", tol=tol
+            )
+
+            if save_data:
+                data_dir.mkdir(parents=True, exist_ok=True)
+                np.savez(full_name, parameters=[alpha, beta], gse=gse, ket=ket)
+        return alpha, beta, gse[0], ket
