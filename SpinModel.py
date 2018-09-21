@@ -7,6 +7,10 @@ from pathlib import Path
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
 
+import logging
+import time
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 from HamiltonianPy.lattice import Lattice
@@ -159,18 +163,18 @@ class JKGModelSolver:
         # Caching these matrices for reuse
         self._cache = (HJ, HK, HG)
 
-    def GS(self, alpha=0.5, beta=-0.5, tol=0, path=None, save_data=True):
+    def GS(self, alpha=0.5, beta=-0.5, tol=0, data_path=None, save_data=True):
         """
         Calculate the ground state energy and vector of the model Hamiltonian
 
         This method first check whether the ground state data for the given
-        `alpha` and `beta` exists in the given `path`:
+        `alpha` and `beta` exists in the given `data_path`:
             1. If exist, then load and return the data;
-            2. If the request data does not exist in the given `path`:
+            2. If the requested data does not exist in the given `data_path`:
                 2.1 Calculate the ground state data for the given `alpha`
                 and `beta`;
                 2.2 If `save_data` is True, save the ground state data to
-                the given `path`;
+                the given `data_path`;
                 2.3 Return the ground state data;
 
         Parameters
@@ -189,16 +193,16 @@ class JKGModelSolver:
         tol : float, optional
             Relative accuracy for eigenvalues (stop criterion)
             The default value 0 implies machine precision.
-        path : str, optional
+        data_path : str, optional
             If the ground state data for the given `alpha` and `beta` is
-            already exist, then `path` specify where to load the data;
-            If the ground state data does not exist, then `path` specify
+            already exist, then `data_path` specify where to load the data;
+            If the ground state data does not exist, then `data_path` specify
             where to save the result.
             The default value `None` implies 'data/SpinModel/' relative to
             the working directory.
         save_data : boolean, optional
             Whether to save the ground state energy and vector to the
-            given `path`.
+            given `data_path`.
             default: True
 
         Returns
@@ -213,8 +217,9 @@ class JKGModelSolver:
             The ground state vector
         """
 
-        data_dir = Path("data/SpinModel/") if path is None else Path(path)
-
+        if data_path is None:
+            data_path = "data/SpinModel/"
+        data_dir = Path(data_path)
         data_name = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
         full_name = data_dir / data_name.format(
             self._numx, self._numy, alpha, beta
@@ -280,3 +285,255 @@ def derivation(xs, ys, nth=1):
         ys = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
         xs = (xs[1:] + xs[:-1]) / 2
     return xs, ys
+
+
+# Useful data for plotting Es versus alphas or betas
+fontsize = 10
+linewidth = 4
+spinewidth = 2
+tick_params = {
+    "labelsize": 9,
+    "which": "both",
+    "length": 6,
+    "width": spinewidth,
+    "direction": "in",
+}
+
+colors = [
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+    "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+]
+
+
+def GSEsVsBeta(solver, alpha=0.5, step=0.01, save_fig=True, fig_path=None,
+               **kwargs):
+    """
+    Calculate and plot the ground state energies versus betas with fixed alpha
+
+    Parameters
+    ----------
+    solver : JKGModelSolver
+        The J-K-Gamma spin model solver
+    alpha : float, optional
+        The `alpha` parameter
+        default: 0.5
+    step : float, optional
+        The step of betas
+        betas = np.arange(0, 2 + step, step)
+        default: 0.01
+    save_fig : boolean, optional
+        Whether to save the figure
+        If True, the figure will be saved to `fig_path` with name
+        'GSEs_numx={0}_numy={1}_step={2:.3f}_alpha={3:.3f}.png'
+        default: True
+    fig_path : str, optional
+        If `save_fig` is True, `fig_path` specify where to save the figure.
+        The default value `None` implies 'figure/SpinModel/fixed_alpha/'
+        relative to the working directory.
+    **kwargs
+        Other keyword arguments are passed to the `GS` method of The
+        `JKGModelSolver` class.
+    """
+
+    info = "index=%d, alpha=%.3f, beta=%.3f, gse=%.8f, dt=%.3f"
+    logger = logging.getLogger("GSEsVsBeta")
+
+    betas = np.arange(0, 2 + step, step)
+    Es = np.zeros(betas.shape, dtype=np.float64)
+    for index, beta in enumerate(betas):
+        t0 = time.time()
+        alpha, beta, gse, ket = solver.GS(
+            alpha=alpha, beta=beta, **kwargs
+        )
+        Es[index] = gse
+        t1 = time.time()
+        logger.info(info, index, alpha, beta, gse, t1 - t0)
+
+    # Plot the ground state energies versus betas
+    fig, ax_Es = plt.subplots()
+    ax_d2Es = ax_Es.twinx()
+
+    d2betas, d2Es = derivation(betas, Es, nth=2)
+    line_Es, = ax_Es.plot(betas, Es, color=colors[0], lw=linewidth)
+    line_d2Es, = ax_d2Es.plot(
+        d2betas, -d2Es/(np.pi**2), color=colors[1], lw=linewidth,
+        # marker="o", ms=10,
+    )
+
+    ax_d2Es.set_ylabel(
+        r"$-d^2E/d\beta^2$", color=colors[1], fontsize=fontsize
+    )
+    ax_d2Es.tick_params("y", colors=colors[1], **tick_params)
+
+    title = r"$E$ and -$\frac{d^2E}{d\beta^2}$ vs $\beta$" + "\n"
+    title += r"At $\alpha$ = {0:.3f}$\pi$".format(alpha)
+    ax_Es.set_title(title, fontsize=fontsize+2)
+
+    ax_Es.set_ylabel("E", color=colors[0], fontsize=fontsize)
+    ax_Es.tick_params("y", colors=colors[0], **tick_params)
+
+    ax_Es.set_xlim(0, 2)
+    ax_Es.set_xlabel(r"$\beta(/\pi)$", fontsize=fontsize)
+    ax_Es.tick_params("x", **tick_params)
+
+    ax_Es.legend(
+        (line_Es, line_d2Es),
+        ("E", r"$-\frac{d^2E}{d\beta^2}$"),
+        loc=0
+    )
+
+    for which, spine in ax_Es.spines.items():
+        spine.set_linewidth(spinewidth)
+
+    if save_fig:
+        if fig_path is None:
+            fig_path = "figure/SpinModel/fixed_alpha/"
+        fig_dir = Path(fig_path)
+        fig_dir.mkdir(parents=True, exist_ok=True)
+        fig_name = "GSEs_numx={0}_numy={1}_step={2:.3f}_alpha={3:.3f}.png"
+        full_name = fig_dir / fig_name.format(
+            solver.numx, solver.numy, step, alpha
+        )
+        fig.savefig(full_name)
+    else:
+        plt.show()
+    plt.close("all")
+
+
+def GSEsVsAlpha(solver, beta=-0.5, step=0.01, save_fig=True, fig_path=None,
+                **kwargs):
+    """
+    Calculate and plot the ground state energies versus alphas with fixed beta
+
+    Parameters
+    ----------
+    solver : JKGModelSolver
+        The J-K-Gamma spin model solver
+    beta : float, optional
+        The `beta` parameter
+        default: -0.5
+    step : float, optional
+        The step of alphas
+        alphas = np.arange(0, 1 + step, step)
+        default: 0.01
+    save_fig : boolean, optional
+        Whether to save the figure to file system.
+        If True, the figure will be saved to `fig_path` with name
+        'GSEs_numx={0}_numy={1}_step={2:.3f}_beta={3:.3f}.png'
+        default: True
+    fig_path : str, optional
+        If `save_fig` is True, `fig_path` specify where to save the figure.
+        The default value `None` implies 'figure/SpinModel/fixed_beta/'
+        relative to the working directory.
+    **kwargs
+        Other keyword arguments are passed to the `GS` method of The
+        `JKGModelSolver` class.
+    """
+
+    info = "index=%d, alpha=%.3f, beta=%.3f, gse=%.8f, dt=%.3f"
+    logger = logging.getLogger("GSEsVsAlpha")
+
+    alphas = np.arange(0, 1 + step, step)
+    Es = np.zeros(alphas.shape, dtype=np.float64)
+    for index, alpha in enumerate(alphas):
+        t0 = time.time()
+        alpha, beta, gse, ket = solver.GS(
+            alpha=alpha, beta=beta, **kwargs
+        )
+        Es[index] = gse
+        t1 = time.time()
+        logger.info(info, index, alpha, beta, gse, t1 - t0)
+
+    # Plot the ground state energies versus alphas
+    fig, ax_Es = plt.subplots()
+    ax_d2Es = ax_Es.twinx()
+
+    d2alphas, d2Es = derivation(alphas, Es, nth=2)
+    line_Es, = ax_Es.plot(alphas, Es, color=colors[2], lw=linewidth)
+    line_d2Es, = ax_d2Es.plot(
+        d2alphas, -d2Es/(np.pi**2), color=colors[3], lw=linewidth,
+        # marker="o", ms=10,
+    )
+
+    ax_d2Es.set_ylabel(
+        r"$-d^2E/d\alpha^2$", color=colors[3], fontsize=fontsize
+    )
+    ax_d2Es.tick_params("y", colors=colors[3], **tick_params)
+
+    title = r"$E$ and -$\frac{d^2E}{d\alpha^2}$ vs $\alpha$" + "\n"
+    title += r"At $\beta$ = {0:.3f}$\pi$".format(beta)
+    ax_Es.set_title(title, fontsize=fontsize+4)
+
+    ax_Es.set_ylabel("E", color=colors[2], fontsize=fontsize)
+    ax_Es.tick_params("y", colors=colors[2], **tick_params)
+
+    ax_Es.set_xlim(0, 1)
+    ax_Es.set_xlabel(r"$\alpha(/\pi)$", fontsize=fontsize)
+    ax_Es.tick_params("x", **tick_params)
+
+    ax_Es.legend(
+        (line_Es, line_d2Es),
+        ("E", r"$-\frac{d^2E}{d\alpha^2}$"),
+        loc=0
+    )
+
+    for which, spine in ax_Es.spines.items():
+        spine.set_linewidth(spinewidth)
+
+    if save_fig:
+        if fig_path is None:
+            fig_path = "figure/SpinModel/fixed_beta/"
+        fig_dir = Path(fig_path)
+        fig_dir.mkdir(parents=True, exist_ok=True)
+        fig_name = "GSEs_numx={0}_numy={1}_step={2:.3f}_beta={3:.3f}.png"
+        full_name = fig_dir / fig_name.format(
+            solver.numx, solver.numy, step, beta
+        )
+        fig.savefig(full_name)
+    else:
+        plt.show()
+    plt.close("all")
+
+
+def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
+    if fixed_which.lower() == "alpha":
+        log_name = "Log_numx={0}_numy={1}_alpha={2:.3f}.log"
+    elif fixed_which.lower() == "beta":
+        log_name = "Log_numx={0}_numy={1}_beta={2:.3f}.log"
+    else:
+        raise ValueError("Invalid `fixed_which` parameter!")
+
+    if log_path is None:
+        log_path = "log/SpinModel/"
+
+    if log_path == "console":
+        handler = logging.StreamHandler()
+    else:
+        log_dir = Path(log_path)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        full_name = log_dir / log_name.format(numx, numy, params)
+        handler = logging.FileHandler(full_name)
+
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s\n%(message)s"
+    )
+    handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.addHandler(handler)
+
+    root.info("Program start running!")
+    solver = JKGModelSolver(numx=numx, numy=numy)
+    if fixed_which.lower() == "alpha":
+        GSEsVsBeta(solver, alpha=params,  **kwargs)
+    else:
+        GSEsVsAlpha(solver, beta=params, **kwargs)
+    root.info("Program stop running!")
+
+
+if __name__ == "__main__":
+    main(
+        0.5, fixed_which="alpha", numx=3, numy=4, log_path="console",
+        save_fig=True, fig_path="C:/Users/swang/Desktop/figure/",
+        tol=1e-10, data_path="C:/Users/swang/Desktop/data/", save_data=True
+    )
