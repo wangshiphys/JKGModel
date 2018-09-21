@@ -6,7 +6,6 @@ Exact diagonalization of the J-K-Gamma model on triangular lattice
 from pathlib import Path
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
-from time import time
 
 import numpy as np
 
@@ -114,11 +113,10 @@ class JKGModelSolver:
         # If the the matrix already exists on the file system, then load them
         # instead of calculating them
 
-        directory = Path("tmp")
+        directory = Path("tmp/")
         name_template = "TRIANGLE_NUMX={0}_NUMY={1}_H{{0}}.npz".format(
             self._numx, self._numy
         )
-        # print(name_template)
         # The slash operator helps create child paths
         file_HJ = directory / name_template.format("J")
         file_HK = directory / name_template.format("K")
@@ -165,6 +163,16 @@ class JKGModelSolver:
         """
         Calculate the ground state energy and vector of the model Hamiltonian
 
+        This method first check whether the ground state data for the given
+        `alpha` and `beta` exists in the given `path`:
+            1. If exist, then load and return the data;
+            2. If the request data does not exist in the given `path`:
+                2.1 Calculate the ground state data for the given `alpha`
+                and `beta`;
+                2.2 If `save_data` is True, save the ground state data to
+                the given `path`;
+                2.3 Return the ground state data;
+
         Parameters
         ----------
         alpha, beta : float, optional
@@ -189,7 +197,8 @@ class JKGModelSolver:
             The default value `None` implies 'data/SpinModel/' relative to
             the working directory.
         save_data : boolean, optional
-            Whether to save the ground state energy and vector to file system
+            Whether to save the ground state energy and vector to the
+            given `path`.
             default: True
 
         Returns
@@ -233,3 +242,41 @@ class JKGModelSolver:
                 data_dir.mkdir(parents=True, exist_ok=True)
                 np.savez(full_name, parameters=[alpha, beta], gse=gse, ket=ket)
         return alpha, beta, gse[0], ket
+
+
+def derivation(xs, ys, nth=1):
+    """
+    Calculate the nth derivatives of `ys` versus `xs` discretely
+
+    The derivatives are calculated using the following formula:
+        dy/dx = (ys[i+1] - ys[i]) / (xs[i+1] - xs[i])
+
+    Parameters
+    ----------
+    xs : 1-D array
+        The independent variables
+        `xs` is assumed to be sorted in ascending order and there are no
+        identical values in `xs`.
+    ys : 1-D array
+        The dependent variables
+        `ys` should be of the same length as `xs`.
+    nth : int, optional
+        The nth derivatives
+        default: 1
+
+    Returns
+    -------
+    xs : 1-D array
+        The independent variables
+    ys : 1-D array
+        The nth derivatives corresponding to the returned `xs`
+    """
+
+    assert isinstance(nth, int) and nth >= 0
+    assert isinstance(xs, np.ndarray) and xs.ndim == 1
+    assert isinstance(ys, np.ndarray) and ys.shape == xs.shape
+
+    for i in range(nth):
+        ys = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
+        xs = (xs[1:] + xs[:-1]) / 2
+    return xs, ys
