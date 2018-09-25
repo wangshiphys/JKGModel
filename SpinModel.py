@@ -7,7 +7,9 @@ from pathlib import Path
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
 
+import argparse
 import logging
+import sys
 import time
 
 import matplotlib.pyplot as plt
@@ -298,7 +300,6 @@ tick_params = {
     "width": spinewidth,
     "direction": "in",
 }
-
 colors = [
     "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
     "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
@@ -496,6 +497,36 @@ def GSEsVsAlpha(solver, beta=-0.5, step=0.01, save_fig=True, fig_path=None,
 
 
 def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
+    """
+    The entrance for calculating the ground state versus model parameter
+
+    Parameters
+    ----------
+    fixed_which : str, optional
+        Set the specified model parameter to be fixed.
+        Valid value are "alpha" or "beta"
+        default: "alpha"
+    params : float
+        The value of the fixed model parameter.
+    numx: int, optional
+        The number of lattice site along the first translation vector.
+        default: 3
+    numy: int
+        The number of lattice site along the second translation vector
+        `numx` and `numy` are used to construct the JKGModelSolver instance
+        default: 4
+    log_path : str, optional
+        Where to save the log information
+        If `log_path` is "console", the log information will be output to the
+        std.err; Otherwise, the log information will be saved to the
+        specified path with name "Log_numx={0}_numy={1}_beta={2:.3f}.log"
+        The default value None implies "log/SpinModel/" relative to the
+        working directory.
+    **kwargs
+        Other keyword arguments are passed to the `GSEsVsBeta` or
+        `GSEsVsAlpha` function
+    """
+
     if fixed_which.lower() == "alpha":
         log_name = "Log_numx={0}_numy={1}_alpha={2:.3f}.log"
     elif fixed_which.lower() == "beta":
@@ -507,7 +538,7 @@ def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
         log_path = "log/SpinModel/"
 
     if log_path == "console":
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
     else:
         log_dir = Path(log_path)
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -532,8 +563,51 @@ def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Parse command line arguments."
+    )
+
+    parser.add_argument(
+        "--fixed_which", type=str, default="alpha",
+        help="Set which model parameter to be fixed (Default: %(default)s).",
+        choices=("alpha", "beta")
+    )
+    parser.add_argument(
+        "--params", type=float, default=0.5,
+        help="The value of the fixed model parameter (Default: %(default)s)."
+    )
+    parser.add_argument(
+        "--numx", type=int, default=3,
+        help="The number of lattice site along the 1st translation vector ("
+             "Default: %(default)s)."
+    )
+    parser.add_argument(
+        "--numy", type=int, default=4,
+        help="The number of lattice site along the 2nd translation vector ("
+             "Default: %(default)s)."
+    )
+    parser.add_argument(
+        "--step", type=float, default=0.01,
+        help="The step of alphas (Default: %(default)s)."
+    )
+    parser.add_argument(
+        "--tol", type=float, default=1e-8,
+        help="The relative accuracy for eigenvalues (stop criterion) ("
+             "Default: %(default)s)."
+    )
+    parser.add_argument(
+        "--show",
+        action="store_true",
+        help="Whether to show the GSEs figure."
+    )
+
+    args = parser.parse_args()
     main(
-        0.5, fixed_which="alpha", numx=3, numy=4, log_path="console",
-        save_fig=True, fig_path="C:/Users/swang/Desktop/figure/",
-        tol=1e-10, data_path="C:/Users/swang/Desktop/data/", save_data=True
+        params=args.params,
+        fixed_which=args.fixed_which,
+        numx=args.numx,
+        numy=args.numy,
+        step=args.step,
+        save_fig=(not args.show),
+        tol=args.tol,
     )
