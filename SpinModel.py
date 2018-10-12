@@ -289,111 +289,128 @@ def derivation(xs, ys, nth=1):
     return xs, ys
 
 
-# Useful data for plotting Es versus alphas or betas
-fontsize = 10
-linewidth = 4
-spinewidth = 2
+# Useful data for plotting GSEs versus alphas or betas
+fontsize = 15
+linewidth = 5
+spinewidth = 3
+title_pad = 15
 tick_params = {
-    "labelsize": 9,
+    "labelsize": 12,
     "which": "both",
     "length": 6,
     "width": spinewidth,
     "direction": "in",
 }
-colors = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-    "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-]
+color_map = plt.get_cmap("tab10")
+colors = color_map(range(color_map.N))
 
+xlabel_template = r"$\{var}(/\pi)$"
+second_derivative = r"$-\frac{{d^2E}}{{d\{var}^2}}$"
+title_template = r"E and -$\frac{{d^2E}}{{d\{var}^2}}$ vs $\{var}$ " \
+                 r"at $\{fixed_which}={fixed_param:.3f}\pi$"
 
-def GSEsVsBeta(solver, alpha=0.5, step=0.01, save_fig=True, fig_path=None,
-               **kwargs):
+def GSEsVsParams(solver, fixed_param, fixed_which="alpha", step=0.01,
+                 save_fig=True, fig_path=None, **kwargs):
     """
-    Calculate and plot the ground state energies versus betas with fixed alpha
+    Calculate and plot the ground state energies versus alphas or betas
 
     Parameters
     ----------
     solver : JKGModelSolver
         The J-K-Gamma spin model solver
-    alpha : float, optional
-        The `alpha` parameter
-        default: 0.5
+    fixed_which : str, optional
+        Which model parameter is fixed
+        Valid value are "alpha" or "beta"
+        default : "alpha"
+    fixed_param: float
+        The value of the fixed model parameter
     step : float, optional
-        The step of betas
-        betas = np.arange(0, 2 + step, step)
+        If `alpha` is fixed, then betas = np.arange(0, 2, step);
+        If `beta` is fixed, then alphas = np.arange(0, 1 + step/2, step)
         default: 0.01
     save_fig : boolean, optional
         Whether to save the figure
         If True, the figure will be saved to `fig_path` with name
-        'GSEs_numx={0}_numy={1}_step={2:.3f}_alpha={3:.3f}.png'
+        `GSEs_numx={0}_numy={1}_step={2:.3f}_{fixed_which}=
+        {fixed_param:.3f}.png`
         default: True
     fig_path : str, optional
         If `save_fig` is True, `fig_path` specify where to save the figure.
-        The default value `None` implies 'figure/SpinModel/fixed_alpha/'
-        relative to the working directory.
+        The default value `None` implies `figure/SpinModel/fixed_{fixed_which}/`
+        relative to the current working directory.
     **kwargs
         Other keyword arguments are passed to the `GS` method of The
         `JKGModelSolver` class.
     """
 
-    info = "index=%d, alpha=%.3f, beta=%.3f, gse=%.8f, dt=%.3f"
-    logger = logging.getLogger("GSEsVsBeta")
+    if fixed_which == "alpha":
+        var = "beta"
+        color0, color1 = colors[0:2]
+        left, right = 0, 2
+        betas = params = np.arange(0, 2, step)
+        alphas = np.zeros(betas.shape, dtype=np.float64) + fixed_param
+    elif fixed_which == "beta":
+        var = "alpha"
+        color0, color1 = colors[3:5]
+        left, right = 0, 1
+        alphas = params = np.arange(0, 1 + step/2, step)
+        betas = np.zeros(alphas.shape, dtype=np.float64) + fixed_param
+    else:
+        raise ValueError("Invalid `fixed_which` parameter!")
+    Es = np.zeros(params.shape, dtype=np.float64)
 
-    betas = np.arange(0, 2 + step, step)
-    Es = np.zeros(betas.shape, dtype=np.float64)
-    for index, beta in enumerate(betas):
+    logger = logging.getLogger()
+    info = "index=%d, alpha=%.3f, beta=%.3f, gse=%.8f, dt=%.3fs"
+    for index, (alpha, beta) in enumerate(zip(alphas, betas)):
         t0 = time.time()
-        alpha, beta, gse, ket = solver.GS(
-            alpha=alpha, beta=beta, **kwargs
-        )
+        alpha, beta, gse, ket = solver.GS(alpha=alpha, beta=beta, **kwargs)
         Es[index] = gse
         t1 = time.time()
         logger.info(info, index, alpha, beta, gse, t1 - t0)
 
-    # Plot the ground state energies versus betas
+    # Plot the ground state energies versus alphas or betas
     fig, ax_Es = plt.subplots()
     ax_d2Es = ax_Es.twinx()
 
-    d2betas, d2Es = derivation(betas, Es, nth=2)
-    line_Es, = ax_Es.plot(betas, Es, color=colors[0], lw=linewidth)
+    d2params, d2Es = derivation(params, Es, nth=2)
+    line_Es, = ax_Es.plot(params, Es, color=color0, lw=linewidth)
     line_d2Es, = ax_d2Es.plot(
-        d2betas, -d2Es/(np.pi**2), color=colors[1], lw=linewidth,
-        # marker="o", ms=10,
+        d2params, -d2Es / (np.pi ** 2), color=color1, lw=linewidth,
     )
 
+    d2Es_ylabel = d2Es_legend = second_derivative.format(var=var)
     ax_d2Es.set_ylabel(
-        r"$-d^2E/d\beta^2$", color=colors[1], fontsize=fontsize
+        d2Es_ylabel, color=color1, fontsize=fontsize, rotation="horizontal"
     )
-    ax_d2Es.tick_params("y", colors=colors[1], **tick_params)
+    ax_d2Es.tick_params("y", colors=color1, **tick_params)
 
-    title = r"$E$ and -$\frac{d^2E}{d\beta^2}$ vs $\beta$" + "\n"
-    title += r"At $\alpha$ = {0:.3f}$\pi$".format(alpha)
-    ax_Es.set_title(title, fontsize=fontsize+2)
+    title = title_template.format(
+        var=var, fixed_which=fixed_which, fixed_param=fixed_param
+    )
+    ax_Es.set_title(title, pad=title_pad, fontsize=fontsize+3)
+    ax_Es.set_ylabel(
+        "E", color=color0, fontsize=fontsize, rotation="horizontal"
+    )
+    ax_Es.tick_params("y", colors=color0, **tick_params)
 
-    ax_Es.set_ylabel("E", color=colors[0], fontsize=fontsize)
-    ax_Es.tick_params("y", colors=colors[0], **tick_params)
-
-    ax_Es.set_xlim(0, 2)
-    ax_Es.set_xlabel(r"$\beta(/\pi)$", fontsize=fontsize)
+    xticks = np.arange(left, right+0.05, 0.1)
+    ax_Es.set_xticks(xticks)
+    ax_Es.set_xticklabels(["{0:.1f}".format(x) for x in xticks], rotation=45)
     ax_Es.tick_params("x", **tick_params)
 
-    ax_Es.legend(
-        (line_Es, line_d2Es),
-        ("E", r"$-\frac{d^2E}{d\beta^2}$"),
-        loc=0
-    )
+    ax_Es.set_xlim(left, right)
+    ax_Es.set_xlabel(xlabel_template.format(var=var), fontsize=fontsize)
+    ax_Es.legend((line_Es, line_d2Es), ("E", d2Es_legend), loc=0)
 
-    for which, spine in ax_Es.spines.items():
-        spine.set_linewidth(spinewidth)
-
+    plt.tight_layout()
     if save_fig:
         if fig_path is None:
-            fig_path = "figure/SpinModel/fixed_alpha/"
+            fig_path = "figure/SpinModel/fixed_{0}/".format(fixed_which)
         fig_dir = Path(fig_path)
         fig_dir.mkdir(parents=True, exist_ok=True)
-        fig_name = "GSEs_numx={0}_numy={1}_step={2:.3f}_alpha={3:.3f}.png"
+        fig_name = "GSEs_numx={0}_numy={1}_step={2:.3f}_{3}={4:.3f}.png"
         full_name = fig_dir / fig_name.format(
-            solver.numx, solver.numy, step, alpha
+            solver.numx, solver.numy, step, fixed_which, fixed_param
         )
         fig.savefig(full_name)
     else:
@@ -401,113 +418,19 @@ def GSEsVsBeta(solver, alpha=0.5, step=0.01, save_fig=True, fig_path=None,
     plt.close("all")
 
 
-def GSEsVsAlpha(solver, beta=-0.5, step=0.01, save_fig=True, fig_path=None,
-                **kwargs):
-    """
-    Calculate and plot the ground state energies versus alphas with fixed beta
-
-    Parameters
-    ----------
-    solver : JKGModelSolver
-        The J-K-Gamma spin model solver
-    beta : float, optional
-        The `beta` parameter
-        default: -0.5
-    step : float, optional
-        The step of alphas
-        alphas = np.arange(0, 1 + step, step)
-        default: 0.01
-    save_fig : boolean, optional
-        Whether to save the figure to file system.
-        If True, the figure will be saved to `fig_path` with name
-        'GSEs_numx={0}_numy={1}_step={2:.3f}_beta={3:.3f}.png'
-        default: True
-    fig_path : str, optional
-        If `save_fig` is True, `fig_path` specify where to save the figure.
-        The default value `None` implies 'figure/SpinModel/fixed_beta/'
-        relative to the working directory.
-    **kwargs
-        Other keyword arguments are passed to the `GS` method of The
-        `JKGModelSolver` class.
-    """
-
-    info = "index=%d, alpha=%.3f, beta=%.3f, gse=%.8f, dt=%.3f"
-    logger = logging.getLogger("GSEsVsAlpha")
-
-    alphas = np.arange(0, 1 + step, step)
-    Es = np.zeros(alphas.shape, dtype=np.float64)
-    for index, alpha in enumerate(alphas):
-        t0 = time.time()
-        alpha, beta, gse, ket = solver.GS(
-            alpha=alpha, beta=beta, **kwargs
-        )
-        Es[index] = gse
-        t1 = time.time()
-        logger.info(info, index, alpha, beta, gse, t1 - t0)
-
-    # Plot the ground state energies versus alphas
-    fig, ax_Es = plt.subplots()
-    ax_d2Es = ax_Es.twinx()
-
-    d2alphas, d2Es = derivation(alphas, Es, nth=2)
-    line_Es, = ax_Es.plot(alphas, Es, color=colors[2], lw=linewidth)
-    line_d2Es, = ax_d2Es.plot(
-        d2alphas, -d2Es/(np.pi**2), color=colors[3], lw=linewidth,
-        # marker="o", ms=10,
-    )
-
-    ax_d2Es.set_ylabel(
-        r"$-d^2E/d\alpha^2$", color=colors[3], fontsize=fontsize
-    )
-    ax_d2Es.tick_params("y", colors=colors[3], **tick_params)
-
-    title = r"$E$ and -$\frac{d^2E}{d\alpha^2}$ vs $\alpha$" + "\n"
-    title += r"At $\beta$ = {0:.3f}$\pi$".format(beta)
-    ax_Es.set_title(title, fontsize=fontsize+4)
-
-    ax_Es.set_ylabel("E", color=colors[2], fontsize=fontsize)
-    ax_Es.tick_params("y", colors=colors[2], **tick_params)
-
-    ax_Es.set_xlim(0, 1)
-    ax_Es.set_xlabel(r"$\alpha(/\pi)$", fontsize=fontsize)
-    ax_Es.tick_params("x", **tick_params)
-
-    ax_Es.legend(
-        (line_Es, line_d2Es),
-        ("E", r"$-\frac{d^2E}{d\alpha^2}$"),
-        loc=0
-    )
-
-    for which, spine in ax_Es.spines.items():
-        spine.set_linewidth(spinewidth)
-
-    if save_fig:
-        if fig_path is None:
-            fig_path = "figure/SpinModel/fixed_beta/"
-        fig_dir = Path(fig_path)
-        fig_dir.mkdir(parents=True, exist_ok=True)
-        fig_name = "GSEs_numx={0}_numy={1}_step={2:.3f}_beta={3:.3f}.png"
-        full_name = fig_dir / fig_name.format(
-            solver.numx, solver.numy, step, beta
-        )
-        fig.savefig(full_name)
-    else:
-        plt.show()
-    plt.close("all")
-
-
-def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
+def main(fixed_param, fixed_which="alpha", numx=3, numy=4, log_path=None,
+         **kwargs):
     """
     The entrance for calculating the ground state versus model parameter
 
     Parameters
     ----------
     fixed_which : str, optional
-        Set the specified model parameter to be fixed.
+        Which model parameter is fixed
         Valid value are "alpha" or "beta"
-        default: "alpha"
-    params : float
-        The value of the fixed model parameter.
+        default : "alpha"
+    fixed_param: float
+        The value of the fixed model parameter
     numx: int, optional
         The number of lattice site along the first translation vector.
         default: 3
@@ -518,21 +441,16 @@ def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
     log_path : str, optional
         Where to save the log information
         If `log_path` is "console", the log information will be output to the
-        std.err; Otherwise, the log information will be saved to the
-        specified path with name "Log_numx={0}_numy={1}_beta={2:.3f}.log"
-        The default value None implies "log/SpinModel/" relative to the
-        working directory.
+        sys.stdout; Otherwise, the log information will be saved to the
+        specified path with name:
+        `Log_numx={0}_numy={1}_{fixed_which}={fixed_param:.3f}.log`
+        The default value `None` implies `log/SpinModel/` relative to the
+        current working directory.
     **kwargs
-        Other keyword arguments are passed to the `GSEsVsBeta` or
-        `GSEsVsAlpha` function
+        Other keyword arguments are passed to the `GSEsVsParams` function
     """
 
-    if fixed_which.lower() == "alpha":
-        log_name = "Log_numx={0}_numy={1}_alpha={2:.3f}.log"
-    elif fixed_which.lower() == "beta":
-        log_name = "Log_numx={0}_numy={1}_beta={2:.3f}.log"
-    else:
-        raise ValueError("Invalid `fixed_which` parameter!")
+    assert fixed_which in ("alpha", "beta")
 
     if log_path is None:
         log_path = "log/SpinModel/"
@@ -542,11 +460,13 @@ def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
     else:
         log_dir = Path(log_path)
         log_dir.mkdir(parents=True, exist_ok=True)
-        full_name = log_dir / log_name.format(numx, numy, params)
+        full_name = log_dir / "Log_numx={0}_numy={1}_{2}={3:.3f}.log".format(
+            numx, numy, fixed_which, fixed_param
+        )
         handler = logging.FileHandler(full_name)
 
     formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s\n%(message)s"
+        "%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     handler.setFormatter(formatter)
     root = logging.getLogger()
@@ -555,10 +475,9 @@ def main(params, fixed_which="alpha", numx=3, numy=4, log_path=None, **kwargs):
 
     root.info("Program start running!")
     solver = JKGModelSolver(numx=numx, numy=numy)
-    if fixed_which.lower() == "alpha":
-        GSEsVsBeta(solver, alpha=params,  **kwargs)
-    else:
-        GSEsVsAlpha(solver, beta=params, **kwargs)
+    GSEsVsParams(
+        solver, fixed_param=fixed_param, fixed_which=fixed_which, **kwargs
+    )
     root.info("Program stop running!")
 
 
@@ -573,27 +492,27 @@ if __name__ == "__main__":
         choices=("alpha", "beta")
     )
     parser.add_argument(
-        "--params", type=float, default=0.5,
+        "--fixed_param", type=float, default=0.5,
         help="The value of the fixed model parameter (Default: %(default)s)."
     )
     parser.add_argument(
         "--numx", type=int, default=3,
-        help="The number of lattice site along the 1st translation vector ("
-             "Default: %(default)s)."
+        help="The number of lattice site along the 1st translation vector "
+             "(Default: %(default)s)."
     )
     parser.add_argument(
         "--numy", type=int, default=4,
-        help="The number of lattice site along the 2nd translation vector ("
-             "Default: %(default)s)."
+        help="The number of lattice site along the 2nd translation vector "
+             "(Default: %(default)s)."
     )
     parser.add_argument(
         "--step", type=float, default=0.01,
-        help="The step of alphas (Default: %(default)s)."
+        help="The step of variable model parameter (Default: %(default)s)."
     )
     parser.add_argument(
         "--tol", type=float, default=1e-8,
-        help="The relative accuracy for eigenvalues (stop criterion) ("
-             "Default: %(default)s)."
+        help="The relative accuracy for eigenvalues (stop criterion) "
+             "(Default: %(default)s)."
     )
     parser.add_argument(
         "--show",
@@ -603,7 +522,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(
-        params=args.params,
+        fixed_param=args.fixed_param,
         fixed_which=args.fixed_which,
         numx=args.numx,
         numy=args.numy,
