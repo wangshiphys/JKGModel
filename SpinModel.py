@@ -4,20 +4,19 @@ Exact diagonalization of the J-K-Gamma model on triangular lattice
 
 
 from pathlib import Path
+from time import time
+
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
 
 import argparse
 import logging
-import sys
-import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from HamiltonianPy.lattice import Lattice
 from HamiltonianPy.termofH import SpinInteraction
-from LatticeData import AS
+from ProjectDataBase.LatticeData import AS
 
 
 class JKGModelSolver:
@@ -165,19 +164,21 @@ class JKGModelSolver:
         # Caching these matrices for reuse
         self._cache = (HJ, HK, HG)
 
-    def GS(self, alpha=0.5, beta=-0.5, tol=0, data_path=None, save_data=True):
+    def GS(self, alpha=0.5, beta=-0.5, tol=0, gs_dir=None):
         """
         Calculate the ground state energy and vector of the model Hamiltonian
 
         This method first check whether the ground state data for the given
-        `alpha` and `beta` exists in the given `data_path`:
-            1. If exist, then load and return the data;
-            2. If the requested data does not exist in the given `data_path`:
+        `alpha` and `beta` exists in the given `gs_dir`:
+            1. If exist, then stop;
+            2. If the requested data does not exist in the given `gs_dir`:
                 2.1 Calculate the ground state data for the given `alpha`
                 and `beta`;
-                2.2 If `save_data` is True, save the ground state data to
-                the given `data_path`;
-                2.3 Return the ground state data;
+                2.2 Save the ground state data to the given `gs_dir` with
+                name:
+                "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz".format(
+                    self.numx, self.numy, alpha, beta
+                )
 
         Parameters
         ----------
@@ -195,47 +196,29 @@ class JKGModelSolver:
         tol : float, optional
             Relative accuracy for eigenvalues (stop criterion)
             The default value 0 implies machine precision.
-        data_path : str, optional
+        gs_dir : str, optional
             If the ground state data for the given `alpha` and `beta` is
-            already exist, then `data_path` specify where to load the data;
-            If the ground state data does not exist, then `data_path` specify
+            already exist, then `gs_dir` specify where to load the data;
+            If the ground state data does not exist, then `gs_dir` specify
             where to save the result.
-            The default value `None` implies 'data/SpinModel/' relative to
-            the working directory.
-        save_data : boolean, optional
-            Whether to save the ground state energy and vector to the
-            given `data_path`.
-            default: True
-
-        Returns
-        -------
-        alpha : float
-            The current alpha parameter
-        beta : float
-            The current beta parameter
-        gse : float
-            The ground state energy
-        ket : array
-            The ground state vector
+            The default value `None` implies
+                'data/SpinModel/GS/alpha={0:.3f}/'.format(alpha)
+             relative to the current working directory.
         """
 
-        if data_path is None:
-            data_path = "data/SpinModel/"
-        data_dir = Path(data_path)
-        data_name = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
-        full_name = data_dir / data_name.format(
+        if gs_dir is None:
+            gs_dir = "data/SpinModel/GS/alpha={0:.3f}/".format(alpha)
+        gs_dir = Path(gs_dir)
+        gs_name_template = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
+        gs_full_name = gs_dir / gs_name_template.format(
             self._numx, self._numy, alpha, beta
         )
 
-        if full_name.exists():
-            with np.load(full_name) as fp:
-                alpha, beta = fp["parameters"]
-                gse = fp["gse"]
-                ket = fp["ket"]
-        else:
-            J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
-            K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
-            G = np.cos(alpha * np.pi)
+        if not gs_full_name.exists():
+            alpha_pi, beta_pi = np.pi * alpha, np.pi * beta
+            J = np.sin(alpha_pi) * np.sin(beta_pi)
+            K = np.sin(alpha_pi) * np.cos(beta_pi)
+            G = np.cos(alpha_pi)
 
             if not hasattr(self, "_cache"):
                 self._TermMatrix()
@@ -245,79 +228,17 @@ class JKGModelSolver:
                 J * HJ + K * HK + G * HG, k=1, which="SA", tol=tol
             )
 
-            if save_data:
-                data_dir.mkdir(parents=True, exist_ok=True)
-                np.savez(full_name, parameters=[alpha, beta], gse=gse, ket=ket)
-        return alpha, beta, gse[0], ket
+            gs_dir.mkdir(parents=True, exist_ok=True)
+            np.savez(gs_full_name, parameters=[alpha, beta], gse=gse, ket=ket)
 
 
-def derivation(xs, ys, nth=1):
+def main(fixed_param, fixed_which="alpha", step=0.01, numx=3, numy=4,
+         log_dir=None, **kwargs):
     """
-    Calculate the nth derivatives of `ys` versus `xs` discretely
-
-    The derivatives are calculated using the following formula:
-        dy/dx = (ys[i+1] - ys[i]) / (xs[i+1] - xs[i])
+    The entrance for calculating the ground state versus model parameters
 
     Parameters
     ----------
-    xs : 1-D array
-        The independent variables
-        `xs` is assumed to be sorted in ascending order and there are no
-        identical values in `xs`.
-    ys : 1-D array
-        The dependent variables
-        `ys` should be of the same length as `xs`.
-    nth : int, optional
-        The nth derivatives
-        default: 1
-
-    Returns
-    -------
-    xs : 1-D array
-        The independent variables
-    ys : 1-D array
-        The nth derivatives corresponding to the returned `xs`
-    """
-
-    assert isinstance(nth, int) and nth >= 0
-    assert isinstance(xs, np.ndarray) and xs.ndim == 1
-    assert isinstance(ys, np.ndarray) and ys.shape == xs.shape
-
-    for i in range(nth):
-        ys = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
-        xs = (xs[1:] + xs[:-1]) / 2
-    return xs, ys
-
-
-# Useful data for plotting GSEs versus alphas or betas
-fontsize = 15
-linewidth = 5
-spinewidth = 3
-title_pad = 15
-tick_params = {
-    "labelsize": 12,
-    "which": "both",
-    "length": 6,
-    "width": spinewidth,
-    "direction": "in",
-}
-color_map = plt.get_cmap("tab10")
-colors = color_map(range(color_map.N))
-
-xlabel_template = r"$\{var}(/\pi)$"
-second_derivative = r"$-\frac{{d^2E}}{{d\{var}^2}}$"
-title_template = r"E and -$\frac{{d^2E}}{{d\{var}^2}}$ vs $\{var}$ " \
-                 r"at $\{fixed_which}={fixed_param:.3f}\pi$"
-
-def GSEsVsParams(solver, fixed_param, fixed_which="alpha", step=0.01,
-                 save_fig=True, fig_path=None, **kwargs):
-    """
-    Calculate and plot the ground state energies versus alphas or betas
-
-    Parameters
-    ----------
-    solver : JKGModelSolver
-        The J-K-Gamma spin model solver
     fixed_which : str, optional
         Which model parameter is fixed
         Valid value are "alpha" or "beta"
@@ -325,112 +246,10 @@ def GSEsVsParams(solver, fixed_param, fixed_which="alpha", step=0.01,
     fixed_param: float
         The value of the fixed model parameter
     step : float, optional
-        If `alpha` is fixed, then betas = np.arange(0, 2, step);
-        If `beta` is fixed, then alphas = np.arange(0, 1 + step/2, step)
+        The step of the non-fixed model parameter
+        If fixed_which is "alpha", betas = np.arange(0, 2, step);
+        If fixed_which is "beta", alphas = np.arange(0, 1+step/2, step).
         default: 0.01
-    save_fig : boolean, optional
-        Whether to save the figure
-        If True, the figure will be saved to `fig_path` with name
-        `GSEs_numx={0}_numy={1}_step={2:.3f}_{fixed_which}=
-        {fixed_param:.3f}.png`
-        default: True
-    fig_path : str, optional
-        If `save_fig` is True, `fig_path` specify where to save the figure.
-        The default value `None` implies `figure/SpinModel/fixed_{fixed_which}/`
-        relative to the current working directory.
-    **kwargs
-        Other keyword arguments are passed to the `GS` method of The
-        `JKGModelSolver` class.
-    """
-
-    if fixed_which == "alpha":
-        var = "beta"
-        color0, color1 = colors[0:2]
-        left, right = 0, 2
-        betas = params = np.arange(0, 2, step)
-        alphas = np.zeros(betas.shape, dtype=np.float64) + fixed_param
-    elif fixed_which == "beta":
-        var = "alpha"
-        color0, color1 = colors[3:5]
-        left, right = 0, 1
-        alphas = params = np.arange(0, 1 + step/2, step)
-        betas = np.zeros(alphas.shape, dtype=np.float64) + fixed_param
-    else:
-        raise ValueError("Invalid `fixed_which` parameter!")
-    Es = np.zeros(params.shape, dtype=np.float64)
-
-    logger = logging.getLogger()
-    info = "index=%d, alpha=%.3f, beta=%.3f, gse=%.8f, dt=%.3fs"
-    for index, (alpha, beta) in enumerate(zip(alphas, betas)):
-        t0 = time.time()
-        alpha, beta, gse, ket = solver.GS(alpha=alpha, beta=beta, **kwargs)
-        Es[index] = gse
-        t1 = time.time()
-        logger.info(info, index, alpha, beta, gse, t1 - t0)
-
-    # Plot the ground state energies versus alphas or betas
-    fig, ax_Es = plt.subplots()
-    ax_d2Es = ax_Es.twinx()
-
-    d2params, d2Es = derivation(params, Es, nth=2)
-    line_Es, = ax_Es.plot(params, Es, color=color0, lw=linewidth)
-    line_d2Es, = ax_d2Es.plot(
-        d2params, -d2Es / (np.pi ** 2), color=color1, lw=linewidth,
-    )
-
-    d2Es_ylabel = d2Es_legend = second_derivative.format(var=var)
-    ax_d2Es.set_ylabel(
-        d2Es_ylabel, color=color1, fontsize=fontsize, rotation="horizontal"
-    )
-    ax_d2Es.tick_params("y", colors=color1, **tick_params)
-
-    title = title_template.format(
-        var=var, fixed_which=fixed_which, fixed_param=fixed_param
-    )
-    ax_Es.set_title(title, pad=title_pad, fontsize=fontsize+3)
-    ax_Es.set_ylabel(
-        "E", color=color0, fontsize=fontsize, rotation="horizontal"
-    )
-    ax_Es.tick_params("y", colors=color0, **tick_params)
-
-    xticks = np.arange(left, right+0.05, 0.1)
-    ax_Es.set_xticks(xticks)
-    ax_Es.set_xticklabels(["{0:.1f}".format(x) for x in xticks], rotation=45)
-    ax_Es.tick_params("x", **tick_params)
-
-    ax_Es.set_xlim(left, right)
-    ax_Es.set_xlabel(xlabel_template.format(var=var), fontsize=fontsize)
-    ax_Es.legend((line_Es, line_d2Es), ("E", d2Es_legend), loc=0)
-
-    plt.tight_layout()
-    if save_fig:
-        if fig_path is None:
-            fig_path = "figure/SpinModel/fixed_{0}/".format(fixed_which)
-        fig_dir = Path(fig_path)
-        fig_dir.mkdir(parents=True, exist_ok=True)
-        fig_name = "GSEs_numx={0}_numy={1}_step={2:.3f}_{3}={4:.3f}.png"
-        full_name = fig_dir / fig_name.format(
-            solver.numx, solver.numy, step, fixed_which, fixed_param
-        )
-        fig.savefig(full_name)
-    else:
-        plt.show()
-    plt.close("all")
-
-
-def main(fixed_param, fixed_which="alpha", numx=3, numy=4, log_path=None,
-         **kwargs):
-    """
-    The entrance for calculating the ground state versus model parameter
-
-    Parameters
-    ----------
-    fixed_which : str, optional
-        Which model parameter is fixed
-        Valid value are "alpha" or "beta"
-        default : "alpha"
-    fixed_param: float
-        The value of the fixed model parameter
     numx: int, optional
         The number of lattice site along the first translation vector.
         default: 3
@@ -438,47 +257,55 @@ def main(fixed_param, fixed_which="alpha", numx=3, numy=4, log_path=None,
         The number of lattice site along the second translation vector
         `numx` and `numy` are used to construct the JKGModelSolver instance
         default: 4
-    log_path : str, optional
+    log_dir : str, optional
         Where to save the log information
-        If `log_path` is "console", the log information will be output to the
-        sys.stdout; Otherwise, the log information will be saved to the
-        specified path with name:
-        `Log_numx={0}_numy={1}_{fixed_which}={fixed_param:.3f}.log`
+        The log information will be saved to `gs_dir` with name:
+            "Log_numx={0}_numy={1}_{2}={3:.3f}.log".format(
+                numx, numy, fixed_which, fixed_param
+            )
         The default value `None` implies `log/SpinModel/` relative to the
         current working directory.
     **kwargs
-        Other keyword arguments are passed to the `GSEsVsParams` function
+        Other keyword arguments are passed to the `GS` method of JKGModelSolver
     """
 
     assert fixed_which in ("alpha", "beta")
 
-    if log_path is None:
-        log_path = "log/SpinModel/"
-
-    if log_path == "console":
-        handler = logging.StreamHandler(sys.stdout)
-    else:
-        log_dir = Path(log_path)
-        log_dir.mkdir(parents=True, exist_ok=True)
-        full_name = log_dir / "Log_numx={0}_numy={1}_{2}={3:.3f}.log".format(
-            numx, numy, fixed_which, fixed_param
-        )
-        handler = logging.FileHandler(full_name)
+    if log_dir is None:
+        log_dir = "log/SpinModel/"
+    log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_name_template = "Log_numx={0}_numy={1}_{2}={3:.3f}.log"
+    log_full_name = log_dir / log_name_template.format(
+        numx, numy, fixed_which, fixed_param
+    )
 
     formatter = logging.Formatter(
         "%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
+    handler = logging.FileHandler(log_full_name)
     handler.setFormatter(formatter)
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    root.addHandler(handler)
+    logger = logging.getLogger()
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
-    root.info("Program start running!")
+    logger.info("Program start running")
     solver = JKGModelSolver(numx=numx, numy=numy)
-    GSEsVsParams(
-        solver, fixed_param=fixed_param, fixed_which=fixed_which, **kwargs
-    )
-    root.info("Program stop running!")
+    if fixed_which == "alpha":
+        betas = np.arange(0, 2, step)
+        alphas = np.zeros(betas.shape, dtype=np.float64) + fixed_param
+    else:
+        alphas = np.arange(0, 1 + step/2, step)
+        betas = np.zeros(alphas.shape, dtype=np.float64) + fixed_param
+
+    msg_template = "alpha={0:.3f}, beta={1:.3f}, dt={2:.3f}s"
+    for alpha, beta in zip(alphas, betas):
+        t0 = time()
+        solver.GS(alpha=alpha, beta=beta, **kwargs)
+        t1 = time()
+        msg = msg_template.format(alpha, beta, t1 - t0)
+        logger.info(msg)
+    logger.info("Program stop running")
 
 
 if __name__ == "__main__":
@@ -514,12 +341,6 @@ if __name__ == "__main__":
         help="The relative accuracy for eigenvalues (stop criterion) "
              "(Default: %(default)s)."
     )
-    parser.add_argument(
-        "--show",
-        action="store_true",
-        help="Whether to show the GSEs figure."
-    )
-
     args = parser.parse_args()
     main(
         fixed_param=args.fixed_param,
@@ -527,6 +348,5 @@ if __name__ == "__main__":
         numx=args.numx,
         numy=args.numy,
         step=args.step,
-        save_fig=(not args.show),
         tol=args.tol,
     )
