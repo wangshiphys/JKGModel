@@ -22,7 +22,7 @@ SPIN_MATRICES = {
 }
 
 
-def TotalSpin(spin_num, data_path="."):
+def TotalSpin(spin_num, data_path="tmp/"):
     """
     Calculate the total spin matrices of a system with N spins
 
@@ -31,7 +31,8 @@ def TotalSpin(spin_num, data_path="."):
         The number of spin in the system
     data_path : str, optional
         Where to save the result
-        default: The current directory
+        The default value "tmp/" means tmp directory in the current working
+        directory.
     """
 
     assert isinstance(spin_num, int) and spin_num > 0
@@ -42,7 +43,7 @@ def TotalSpin(spin_num, data_path="."):
     sx_name = data_dir / name_template.format("SX", spin_num)
     sy_name = data_dir / name_template.format("SY", spin_num)
     sz_name = data_dir / name_template.format("SZ", spin_num)
-    s2_name = data_dir / name_template.format("S^2", spin_num)
+    s2_name = data_dir / name_template.format("S2", spin_num)
 
     total_sx = total_sy = total_sz = 0.0
     for index in range(spin_num):
@@ -69,11 +70,8 @@ def TotalSpin(spin_num, data_path="."):
 
 
 if __name__ == "__main__":
-    upper_bound = int(sys.argv[1])
-    for spin_num in range(1, upper_bound+1):
-        t0 = time.time()
-        TotalSpin(spin_num, data_path="tmp/")
-        t1 = time.time()
-        print("The current spin_num: {0}".format(spin_num))
-        print("The time spend on this spin_num: {0}s".format(t1 - t0))
-        print("=" * 80, flush=True)
+    spin_num = int(sys.argv[1])
+    t0 = time.time()
+    TotalSpin(spin_num, data_path="tmp/")
+    t1 = time.time()
+    print("Time used: {0:.5f}s".format(t1 - t0))
