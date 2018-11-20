@@ -7,12 +7,8 @@ from datetime import datetime
 from multiprocessing import current_process, Process, Queue
 from pathlib import Path
 from time import time
-from urllib.request import urlopen
 
 from scipy.sparse import load_npz
-
-import argparse
-import io
 
 import mkl
 import numpy as np
@@ -23,35 +19,12 @@ mkl.set_num_threads(1)
 LOG_FMT = "{now:%Y-%m-%d %H:%M:%S} - {process} - {message}\n"
 
 
-def _DownloadGS(url):
-    # Download the Ground state vector from the given url
-    with urlopen(url) as fp:
-        raw_data = fp.read()
-
-    stream = io.BytesIO(raw_data)
-    with np.load(stream) as ld:
-        ket = ld["ket"]
-    stream.close()
-    return ket
-
-
-def _ReadGS(path):
-    # Read the ground state vector from the given path
-    with np.load(path) as ld:
-        ket = ld["ket"]
-    return ket
-
-
-def LoadGS(root, params, process_num, GSQueue, log_queue):
+def LoadGS(params, process_num, GSQueue, log_queue, numx=4, numy=6):
     """
-    Load the ground state vector from a remote server or a local file
+    Load the ground state vector
 
     Parameters
     ----------
-    root : str
-        The root directory where the ground state vectors are stored
-        It can be an url started with `http://` which specify the address of
-        the remote server, or it can be a local directory
     params : sequence
         A collection of (alpha, beta), which specifies the model parameter
     process_num : int
@@ -60,24 +33,27 @@ def LoadGS(root, params, process_num, GSQueue, log_queue):
         A queue of ground state vectors waiting to be processed
     log_queue : multiprocessing.Queue
         A queue of log message
+    numx : int, optional
+        The number of lattice site along the first translation vector
+        default: 4
+    numy : int, optional
+        The number of lattice site along the second translation vector
+        default: 6
     """
 
-    gs_path_template = "GS/alpha={alpha:.3f}/"
-    gs_name_template = "GS_numx=4_numy=6_alpha={alpha:.3f}_beta={beta:.3f}.npz"
-    url_template = root + gs_path_template + gs_name_template
+    gs_path_template = "data/SpinModel/GS/alpha={alpha:.3f}/"
+    gs_name_template = "GS_numx={0}_numy={1}".format(numx, numy)
+    gs_name_template += "_alpha={alpha:.3f}_beta={beta:.3f}.npz"
+    gs_full_name_template = gs_path_template + gs_name_template
 
-    if url_template.startswith("http://"):
-        load_func = _DownloadGS
-    else:
-        load_func = _ReadGS
-
-    log_msg_template = "Put GS of (alpha={0:.3f}, beta={1:.3f}) into GSQueue"
-    log_msg_template += " - Time used: {2:.3f}s"
+    log_msg_template = "alpha={0:.3f}, beta={1:.3f} ready - Time used: {2:.3f}s"
 
     process = current_process()
     for alpha, beta in params:
         t0 = time()
-        ket = load_func(url_template.format(alpha=alpha, beta=beta))
+        gs_full_name = gs_full_name_template.format(alpha=alpha, beta=beta)
+        with np.load(gs_full_name) as ld:
+            ket = ld["ket"]
         t1 = time()
 
         GSQueue.put((alpha, beta, ket))
@@ -95,7 +71,7 @@ def LoadGS(root, params, process_num, GSQueue, log_queue):
     log_queue.close()
 
 
-def GSAverages(GSQueue, log_queue, SMatrices_path):
+def GSAverages(GSQueue, log_queue, numx=4, numy=6):
     """
     Calculate the ground state averages of spin operators of the system
 
@@ -105,21 +81,27 @@ def GSAverages(GSQueue, log_queue, SMatrices_path):
         A queue of ground state vectors waiting to be processed
     log_queue : multiprocessing.Queue
         A queue of log message
-    SMatrices_path : str
-        Where to load the spin matrices
+    numx : int, optional
+        The number of lattice site along the first translation vector
+        default: 4
+    numy : int, optional
+        The number of lattice site along the second translation vector
+        default: 6
     """
 
-    avg_path_template = "Averages/alpha={0:.3f}/"
-    avg_name_template = "Averages_numx=4_numy=6_alpha={0:.3f}_beta={1:.3f}.npz"
+    avg_path_template = "data/SpinModel/Averages/alpha={alpha:.3f}/"
+    avg_name_template = "Averages_numx={0}_numy={1}".format(numx, numy)
+    avg_name_template += "_alpha={alpha:.3f}_beta={beta:.3f}.npz"
 
-    log_msg_template = "GS of (alpha={0:.3f}, beta={1:.3f}) processed"
-    log_msg_template += " - Time used: {2:.3f}s"
+    log_msg_template = "alpha={0:.3f}, beta={1:.3f} done  - Time used: {2:.3f}s"
 
-    SMatrices_name_template = "Total_{0} with spin_number=24.npz"
-    SX = load_npz(SMatrices_path + SMatrices_name_template.format("SX"))
-    SY = load_npz(SMatrices_path + SMatrices_name_template.format("SY"))
-    SZ = load_npz(SMatrices_path + SMatrices_name_template.format("SZ"))
-    S2 = load_npz(SMatrices_path + SMatrices_name_template.format("S2"))
+    SMatrices_name_template = "tmp/Total_{{0}} with spin_number={0}.npz".format(
+        numx * numy
+    )
+    SX = load_npz(SMatrices_name_template.format("SX"))
+    SY = load_npz(SMatrices_name_template.format("SY"))
+    SZ = load_npz(SMatrices_name_template.format("SZ"))
+    S2 = load_npz(SMatrices_name_template.format("S2"))
 
     process = current_process()
     while True:
@@ -134,10 +116,10 @@ def GSAverages(GSQueue, log_queue, SMatrices_path):
         SZ_avg = np.vdot(ket, SZ.dot(ket))
         S2_avg = np.vdot(ket, S2.dot(ket))
 
-        avg_path = Path(avg_path_template.format(alpha))
+        avg_path = Path(avg_path_template.format(alpha=alpha))
         avg_path.mkdir(parents=True, exist_ok=True)
         np.savez(
-            avg_path / avg_name_template.format(alpha, beta),
+            avg_path / avg_name_template.format(alpha=alpha, beta=beta),
             SX=[SX_avg], SY=[SY_avg], SZ=[SZ_avg], S2=[S2_avg]
         )
         t1 = time()
@@ -152,70 +134,62 @@ def GSAverages(GSQueue, log_queue, SMatrices_path):
     log_queue.close()
 
 
-def main(root, params, process_num=3, SMatrices_path=None, log_path=None):
+def main(params, process_num=2, numx=4, numy=6):
     """
     The entrance for calculating the ground state averages
 
     Parameters
     ----------
-    root : str
-        The root directory where the ground state vectors are stored
-        It can be an url started with `http://` which specify the address of
-        the remote server, or it can be a local directory
     params : sequence
         A collection of (alpha, beta), which specifies the model parameter
     process_num : int, optional
         The number of process used to calculate the ground state averages
-        default: 3
-    SMatrices_path : str, optional
-        Where to load the spin matrices
-        The default value `None` implies `/home0/wangshiphys/JKGModel/tmp`
-    log_path : str, optional
-        Where to save the log
-        The default value `None` implies `log/Averages.log` relative to the
-        current working directory.
+        default: 2
+    numx : int, optional
+        The number of lattice site along the first translation vector
+        default: 4
+    numy : int, optional
+        The number of lattice site along the second translation vector
+        default: 6
     """
 
     assert isinstance(process_num, int) and process_num > 0
 
-    if SMatrices_path is None:
-        SMatrices_path = "/home0/wangshiphys/JKGModel/tmp/"
-    if log_path is None:
-        log_path = "log/"
-
-    log_dir = Path(log_path)
-    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = Path("log/SpinModel/")
+    log_path.mkdir(parents=True, exist_ok=True)
 
     GSQueue = Queue(8 * process_num)
     log_queue = Queue()
 
     process_table = {}
     p = Process(
-        target=LoadGS, args=(root, params, process_num, GSQueue, log_queue)
+        target=LoadGS,
+        args=(params, process_num, GSQueue, log_queue, numx, numy)
     )
     p.start()
     process_table[p.pid] = p
 
     for i in range(process_num):
         p = Process(
-            target=GSAverages, args=(GSQueue, log_queue, SMatrices_path)
+            target=GSAverages,
+            args=(GSQueue, log_queue, numx, numy)
         )
         p.start()
         process_table[p.pid] = p
 
-    with open(log_dir / "Averages.log", mode="a", buffering=1) as fp:
-        tmp = LOG_FMT.format(
+    with open(log_path / "Averages.log", mode="a", buffering=1) as fp:
+        log = LOG_FMT.format(
             now=datetime.now(), message="Start running", process="Main"
         )
-        fp.write(tmp)
+        fp.write(log)
         while True:
             log = log_queue.get()
             if log in process_table:
-                tmp = LOG_FMT.format(
+                new_log = LOG_FMT.format(
                     now=datetime.now(), message="Finished",
                     process=process_table[log].name,
                 )
-                fp.write(tmp)
+                fp.write(new_log)
                 process_table[log].join()
                 del process_table[log]
             else:
@@ -223,34 +197,14 @@ def main(root, params, process_num=3, SMatrices_path=None, log_path=None):
             if len(process_table) == 0:
                 break
 
-        tmp = LOG_FMT.format(
+        log = LOG_FMT.format(
             now=datetime.now(), message="Stop running", process="Main"
         )
-        fp.write(tmp)
+        fp.write(log)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Parse command line arguments."
-    )
-    parser.add_argument(
-        "--root", type=str, default="http://210.28.140.119:8000/",
-        help="The root directory where the ground state vectors are stored"
-    )
-    parser.add_argument(
-        "--alpha", type=float, default=0.5,
-        help="The value of alpha (Default: %(default)s)."
-    )
-    parser.add_argument(
-        "--proc_num", type=int, default=2,
-        help="The number of process to use (Default : %(default)s)."
-    )
-
-    args = parser.parse_args()
-    root = args.root
-    alpha = args.alpha
-    process_num = args.proc_num
-
-    params = [[alpha, beta] for beta in np.arange(0, 2, 0.01)]
-
-    main(root=root, params=params, process_num=process_num)
+    alpha = 0.01
+    process_num = 3
+    params = [[alpha, beta] for beta in np.arange(0, 0.1, 0.01)]
+    main(params=params, process_num=process_num)
