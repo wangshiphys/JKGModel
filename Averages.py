@@ -18,21 +18,20 @@ __all__ = [
 ]
 
 
-SPIN_X_MATRICES = np.array([[0.0, 0.5], [0.5, 0.0]], dtype=np.float64)
+SX_MATRIX = np.array([[0.0, 0.5], [0.5, 0.0]], dtype=np.float64)
 # The real SY matrix is np.array([[0.0, -0.5j], [0.5j, 0.0]])
 # The following  matrix is the imaginary part
-SPIN_Y_IMAG_MATRICES = np.array([[0.0, -0.5], [0.5, 0.0]], dtype=np.float64)
-SPIN_Z_MATRICES = np.array([[0.5, 0.0], [0.0, -0.5]], dtype=np.float64)
+SY_MATRIX_IMAG = np.array([[0.0, -0.5], [0.5, 0.0]], dtype=np.float64)
+SZ_MATRIX = np.array([[0.5, 0.0], [0.0, -0.5]], dtype=np.float64)
 
 
 LOG_TEMPLATE = "{now:%Y-%m-%d %H:%M:%S} - {message} - Time Used: {dt:.3f}s"
 
 gs_path_template = "data/SpinModel/GS/alpha={alpha:.3f}/"
-avg_path_template = "data/SpinModel/Averages/alpha={alpha:.3f}/"
+avg_path_template = gs_path_template.replace("GS", "Averages")
 gs_name_template = "GS_numx={numx}_numy={numy}_" \
                    "alpha={alpha:.3f}_beta={beta:.3f}.npz"
-avg_name_template = "Averages_numx={numx}_numy={numy}_" \
-                   "alpha={alpha:.3f}_beta={beta:.3f}.npz"
+avg_name_template = gs_name_template.replace("GS", "Averages")
 
 
 def TotalSpin(spin_num):
@@ -59,10 +58,10 @@ def TotalSpin(spin_num):
     total_sx = total_sy_imag = total_sz = 0.0
     for index in range(spin_num):
         I0 = identity(1 << index, np.float64, "csr")
-        I1 = identity(1 << (spin_num-index-1), np.float64, "csr")
-        total_sx += kron(I1, kron(SPIN_X_MATRICES, I0, "csr"), "csr")
-        total_sz += kron(I1, kron(SPIN_Z_MATRICES, I0, "csr"), "csr")
-        total_sy_imag += kron(I1, kron(SPIN_Y_IMAG_MATRICES, I0, "csr"), "csr")
+        I1 = identity(1 << (spin_num - index - 1), np.float64, "csr")
+        total_sx += kron(I1, kron(SX_MATRIX, I0, "csr"), "csr")
+        total_sz += kron(I1, kron(SZ_MATRIX, I0, "csr"), "csr")
+        total_sy_imag += kron(I1, kron(SY_MATRIX_IMAG, I0, "csr"), "csr")
         del I0, I1
     return total_sx, total_sy_imag, total_sz
 
@@ -128,14 +127,7 @@ def GSAverages(params, numx=4, numy=6):
         t1 = time()
 
         log = LOG_TEMPLATE.format(
-            now=datetime.now(), dt= t1 - t0,
+            now=datetime.now(), dt=t1 - t0,
             message="alpha={0:.3f}, beta={1:.3f} done".format(alpha, beta)
         )
         print(log, flush=True)
-
-
-if __name__ == "__main__":
-    alpha = 0.50
-    betas = [1.45, 1.46, 1.47, 1.50, 1.51, 1.52, 1.53, 1.54, 1.55]
-    params = [[alpha, beta] for beta in betas]
-    GSAverages(params)
