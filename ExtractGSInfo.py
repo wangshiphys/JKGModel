@@ -1,3 +1,8 @@
+"""
+Extract ground state information from the stored ground state data.
+"""
+
+
 import logging
 import warnings
 from pathlib import Path
