@@ -1,49 +1,61 @@
 """
-Exact diagonalization of the J-K-Gamma model on triangular lattice
+Exact diagonalization of the J-K-Gamma-Gamma'(J-K-G-GP) model on triangular
+lattice.
 """
 
 
+import logging
+import warnings
 from pathlib import Path
 from time import time
 
+import numpy as np
+import tables as tb
+from HamiltonianPy import lattice_generator, SpinInteraction
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
 
-import argparse
-import logging
-
-import numpy as np
-
-from HamiltonianPy.lattice import Lattice
-from HamiltonianPy.termofH import SpinInteraction
-from ProjectDataBase.LatticeData import AS
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+warnings.filterwarnings("ignore", category=tb.NaturalNameWarning)
 
 
 class JKGModelSolver:
     """
-    Exact diagonalization of the J-K-Gamma spin model on triangular lattice
+    Exact diagonalization of the J-K-Gamma(J-K-G) model on triangular lattice.
 
     Attributes
     ----------
     numx: int
-        The number of lattice site along the first translation vector
+        The number of lattice site along the 1st translation vector.
     numy: int
-        The number of lattice site along the second translation vector
+        The number of lattice site along the 2nd translation vector.
     site_num: int
-        The number of lattice site of the system
+        The number of lattice site of the system.
     """
+
+    # Default model parameters
+    # "alpha" and "beta" for the J-K-Gamma model
+    # J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
+    # K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
+    # G = np.cos(alpha * np.pi)
+    # "J", "K", "G" and "GP" for the J-K-Gamma-Gamma' model.
+    # The default model parameters correspond to ferromagnetic Heisenberg model
+    DEFAULT_MODEL_PARAMS = {
+        "alpha": 0.5, "beta": -0.5,
+        "J": -1.0, "K": 0.0, "G": 0.0, "GP": 0.0,
+    }
 
     def __init__(self, numx, numy=None):
         """
-        Customize the newly created instance
+        Customize the newly created instance.
 
         Parameters
         ----------
         numx : int
-            The number of lattice site along the first translation vector
-        numy : int, optional
-            The number of lattice site along the second translation vector
-            default: numy = numx
+            The number of lattice site along the 1st translation vector.
+        numy : int or None, optional
+            The number of lattice site along the 2nd translation vector.
+            Default: numy = numx.
         """
 
         assert isinstance(numx, int) and numx > 0
@@ -58,7 +70,7 @@ class JKGModelSolver:
     @property
     def numx(self):
         """
-        The `numx` attribute
+        The `numx` attribute.
         """
 
         return self._numx
@@ -66,7 +78,7 @@ class JKGModelSolver:
     @property
     def numy(self):
         """
-        The `numy` attribute
+        The `numy` attribute.
         """
 
         return self._numy
@@ -74,7 +86,7 @@ class JKGModelSolver:
     @property
     def site_num(self):
         """
-        The `site_num` attribute
+        The `site_num` attribute.
         """
 
         return self._site_num
@@ -82,41 +94,37 @@ class JKGModelSolver:
     def _bonds(self):
         # Generate all nearest neighbor bonds
         # Categorize the nearest neighbor bonds according to their direction
-
-        points = np.matmul(
-            [[x, y] for x in range(self._numx) for y in range(self._numy)], AS
+        cluster = lattice_generator(
+            "triangle", num0=self._numx, num1=self._numy
         )
-        vectors = AS * np.array([[self._numx], [self._numy]])
-
-        cluster = Lattice(points=points, vectors=vectors)
         intra, inter = cluster.bonds(nth=1)
 
         x_bonds = []
         y_bonds = []
         z_bonds = []
         for bond in intra + inter:
-            p0, p1 = bond.getEndpoints()
+            p0, p1 = bond.endpoints
             index0 = cluster.getIndex(site=p0, fold=True)
             index1 = cluster.getIndex(site=p1, fold=True)
             bond_index = (index0, index1)
 
-            azimuth = int(bond.getAzimuth(ndigits=0))
-            if azimuth in (-180, 0):
+            azimuth = bond.getAzimuth(ndigits=0)
+            if azimuth in (-180, 0, 180):
                 x_bonds.append(bond_index)
             elif azimuth in (-120, 60):
                 y_bonds.append(bond_index)
             elif azimuth in (-60, 120):
                 z_bonds.append(bond_index)
             else:
-                raise ValueError("Invalid bond direction!")
-
+                raise ValueError("Invalid azimuth: {0}".format(azimuth))
         return x_bonds, y_bonds, z_bonds
 
     def _TermMatrix(self):
-        # Calculate the matrix representation of the J, K, Gamma term
-        # Save these matrices on the file system
-        # If the the matrix already exists on the file system, then load them
-        # instead of calculating them
+        # Check whether the matrix representation for the J, K, Gamma term
+        # exist on the "tmp/" directory relative to the current working
+        # directory(CWD). If exist, load these matrices; if not, calculate
+        # the matrix representation and save the result to the "tmp/"
+        # directory relative CWD, the "tmp/" directory is created if necessary.
 
         directory = Path("tmp/")
         name_template = "TRIANGLE_NUMX={0}_NUMY={1}_H{{0}}.npz".format(
@@ -127,35 +135,40 @@ class JKGModelSolver:
         file_HK = directory / name_template.format("K")
         file_HG = directory / name_template.format("G")
 
+        logger = logging.getLogger(__name__).getChild(
+            ".".join([self.__class__.__name__, "TermMatrix"])
+        )
         if file_HJ.exists() and file_HK.exists() and file_HG.exists():
+            t0 = time()
             HJ = load_npz(file_HJ)
             HK = load_npz(file_HK)
             HG = load_npz(file_HG)
+            t1 = time()
+            logger.info("Load HJ, HK, HG, dt=%.6fs", t1 - t0)
         else:
             site_num = self._site_num
             all_bonds = self._bonds()
             configs = [("x", "y", "z"), ("y", "z", "x"), ("z", "x", "y")]
 
             HJ = HK = HG = 0.0
+            msg = "%s-bond: %2d/%2d, dt=%.6fs"
+            m_func = SpinInteraction.matrix_function
             for (gamma, alpha, beta), bonds in zip(configs, all_bonds):
-                for index0, index1 in bonds:
-                    SKM = SpinInteraction.matrix_function(
-                        [(index0, gamma), (index1, gamma)], site_num
-                    )
+                bond_num = len(bonds)
+                for count, (index0, index1) in enumerate(bonds, start=1):
+                    t0 = time()
+                    SKM = m_func([(index0, gamma), (index1, gamma)], site_num)
+                    # Kitaev term
                     HK += SKM
+                    # Heisenberg term
                     HJ += SKM
-                    HJ += SpinInteraction.matrix_function(
-                        [(index0, alpha), (index1, alpha)], site_num
-                    )
-                    HJ += SpinInteraction.matrix_function(
-                        [(index0, beta), (index1, beta)], site_num
-                    )
-                    HG += SpinInteraction.matrix_function(
-                        [(index0, alpha), (index1, beta)], site_num
-                    )
-                    HG += SpinInteraction.matrix_function(
-                        [(index0, beta), (index1, alpha)], site_num
-                    )
+                    HJ += m_func([(index0, alpha), (index1, alpha)], site_num)
+                    HJ += m_func([(index0, beta), (index1, beta)], site_num)
+                    # Gamma term
+                    HG += m_func([(index0, alpha), (index1, beta)], site_num)
+                    HG += m_func([(index0, beta), (index1, alpha)], site_num)
+                    t1 = time()
+                    logger.info(msg, gamma, count, bond_num, t1 - t0)
             directory.mkdir(parents=True, exist_ok=True)
             save_npz(file_HJ, HJ, compressed=False)
             save_npz(file_HK, HK, compressed=False)
@@ -164,189 +177,304 @@ class JKGModelSolver:
         # Caching these matrices for reuse
         self._cache = (HJ, HK, HG)
 
-    def GS(self, alpha=0.5, beta=-0.5, tol=0, gs_dir=None):
+    @staticmethod
+    def _already_exist(hdf5_file_name, ket_name):
+        if Path(hdf5_file_name).exists():
+            h5f = tb.open_file(hdf5_file_name, mode="r")
+            try:
+                h5f.get_node("/", ket_name)
+            except tb.NoSuchNodeError:
+                exist = False
+            else:
+                exist = True
+            h5f.close()
+        else:
+            exist = False
+        return exist
+
+    @staticmethod
+    def _save_data(hdf5_file_name, ket_name, ket, attrs):
+        hdf5 = tb.open_file(hdf5_file_name, mode="a")
+        ket_array = hdf5.create_carray(
+            "/", ket_name, obj=ket,
+            filters=tb.Filters(complevel=9, complib="zlib")
+        )
+        for attrname, attrvalue in attrs.items():
+            ket_array.set_attr(attrname, attrvalue)
+        hdf5.close()
+
+    def GS(self, gs_path="data/SpinModel/", tol=0.0, **model_params):
         """
-        Calculate the ground state energy and vector of the model Hamiltonian
+        Calculate the ground state energy and vector of the J-K-Gamma model
+        Hamiltonian.
+
+        This method assumes that the ground state data are stored in
+        pytables-files(hdf5-files) located in the specified `gs_path`. The
+        names of the hdf5-files have the following pattern:
+            "GS_numx={numx}_numy={numy}_alpha={alpha:.3f}.zlib.h5"
+        The ground state vector for a specific `alpha` and `beta` is stored
+        in the hdf5-file as a `tables.CArray`, the model parameters `alpha`,
+        `beta` and ground state energy `gse` are saved as attributes of the
+        `tables.CArray`. The names of the `tables.CArray` have the following
+        pattern:
+            "GS_numx={numx}_numy={numy}_alpha={alpha:.3f}_beta={beta:.3f}"
+        The variables in the "{}"s are replaced with the actual variables.
 
         This method first check whether the ground state data for the given
-        `alpha` and `beta` exists in the given `gs_dir`:
+        `alpha` and `beta` exists in the given `gs_path`:
             1. If exist, then stop;
-            2. If the requested data does not exist in the given `gs_dir`:
-                2.1 Calculate the ground state data for the given `alpha`
-                and `beta`;
-                2.2 Save the ground state data to the given `gs_dir` with
-                name:
-                "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz".format(
-                    self.numx, self.numy, alpha, beta
-                )
+            2. If the requested data does not exist in the given `gs_path`:
+                2.1 Calculate the ground state data;
+                2.2 Save the ground state data according to the rules just
+                described.
 
         Parameters
         ----------
-        alpha, beta : float, optional
-            Model parameters
-            The default values for alpha and beta are 0.5 and -0.5 respectively.
+        gs_path : str, optional
+            Where to save the ground state data. It can be an absolute path
+            or a path relative to the current working directory(CWD). The
+            specified `gs_path` will be created if necessary.
+            Default: "data/SpinModel/"(Relative to CWD).
+        tol : float, optional
+            Relative accuracy for eigenvalues (stop criterion).
+            The default value 0 implies machine precision.
+        model_params : optional
+            The model parameters recognized by this method are `alpha` and
+            `beta`. All other keyword arguments are simply ignored. If `alpha`
+            and/or `beta` are no specified, the default value defined in
+            class variable `DEFAULT_MODEL_PARAMS` will be used.
 
             J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
             K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
             G = np.cos(alpha * np.pi)
-
-            J is the coefficient of the Heisenberg term
-            K is the coefficient of the Kitaev term
-            G is the coefficient of the Gamma term
-        tol : float, optional
-            Relative accuracy for eigenvalues (stop criterion)
-            The default value 0 implies machine precision.
-        gs_dir : str, optional
-            If the ground state data for the given `alpha` and `beta` is
-            already exist, then `gs_dir` specify where to load the data;
-            If the ground state data does not exist, then `gs_dir` specify
-            where to save the result.
-            The default value `None` implies
-                'data/SpinModel/GS/alpha={0:.3f}/'.format(alpha)
-             relative to the current working directory.
+            J is the coefficient of the Heisenberg term.
+            K is the coefficient of the Kitaev term.
+            G is the coefficient of the Gamma term.
         """
 
-        if gs_dir is None:
-            gs_dir = "data/SpinModel/GS/alpha={0:.3f}/".format(alpha)
-        gs_dir = Path(gs_dir)
-        gs_name_template = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
-        gs_full_name = gs_dir / gs_name_template.format(
-            self._numx, self._numy, alpha, beta
-        )
+        actual_model_params = dict(self.DEFAULT_MODEL_PARAMS)
+        actual_model_params.update(model_params)
+        alpha = actual_model_params["alpha"]
+        beta = actual_model_params["beta"]
 
-        if not gs_full_name.exists():
-            alpha_pi, beta_pi = np.pi * alpha, np.pi * beta
-            J = np.sin(alpha_pi) * np.sin(beta_pi)
-            K = np.sin(alpha_pi) * np.cos(beta_pi)
-            G = np.cos(alpha_pi)
+        prefix = "GS_numx={0}_numy={1}".format(self._numx, self._numy)
+        fixed_params = "alpha={0:.3f}".format(alpha)
+        full_params = "alpha={0:.3f}_beta={1:.3f}".format(alpha, beta)
+
+        # `gs_path` is created if not exist
+        Path(gs_path).mkdir(exist_ok=True, parents=True)
+        hdf5_file_name = "".join(
+            [gs_path, prefix, "_", fixed_params, ".zlib.h5"]
+        )
+        ket_name = "".join([prefix, "_", full_params])
+
+        logger = logging.getLogger(__name__).getChild(
+            ".".join([self.__class__.__name__, "GS"])
+        )
+        if self._already_exist(hdf5_file_name, ket_name):
+            msg = "GS for alpha=%.3f, beta=%.3f already exist"
+            logger.info(msg, alpha, beta)
+        else:
+            J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
+            K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
+            G = np.cos(alpha * np.pi)
 
             if not hasattr(self, "_cache"):
                 self._TermMatrix()
             HJ, HK, HG = self._cache
 
-            gse, ket = eigsh(
-                J * HJ + K * HK + G * HG, k=1, which="SA", tol=tol
-            )
+            t0 = time()
+            gse, ket = eigsh(J * HJ + K * HK + G * HG, k=1, which="SA", tol=tol)
+            t1 = time()
+            logger.info("alpha=%.3f, beta=%.3f, dt=%.6fs", alpha, beta, t1 - t0)
 
-            gs_dir.mkdir(parents=True, exist_ok=True)
-            np.savez(gs_full_name, parameters=[alpha, beta], gse=gse, ket=ket)
+            # Save the ground state data
+            attrs = {
+                "numx": self._numx, "numy": self._numy,
+                "alpha": alpha, "beta": beta, "gse": gse,
+            }
+            self._save_data(hdf5_file_name, ket_name, ket, attrs=attrs)
+            logger.info("Save GS data to %s:/%s", hdf5_file_name, ket_name)
+
+    __call__ = GS
 
 
-def main(fixed_param, fixed_which="alpha", step=0.01, numx=3, numy=4,
-         log_dir=None, **kwargs):
+class JKGGPModelSolver(JKGModelSolver):
     """
-    The entrance for calculating the ground state versus model parameters
+    Exact diagonalization of the J-K-Gamma-Gamma' model on triangular lattice.
 
-    Parameters
+    Attributes
     ----------
-    fixed_which : str, optional
-        Which model parameter is fixed
-        Valid value are "alpha" or "beta"
-        default : "alpha"
-    fixed_param: float
-        The value of the fixed model parameter
-    step : float, optional
-        The step of the non-fixed model parameter
-        If fixed_which is "alpha", betas = np.arange(0, 2, step);
-        If fixed_which is "beta", alphas = np.arange(0, 1+step/2, step).
-        default: 0.01
-    numx: int, optional
-        The number of lattice site along the first translation vector.
-        default: 3
+    numx: int
+        The number of lattice site along the 1st translation vector.
     numy: int
-        The number of lattice site along the second translation vector
-        `numx` and `numy` are used to construct the JKGModelSolver instance
-        default: 4
-    log_dir : str, optional
-        Where to save the log information
-        The log information will be saved to `gs_dir` with name:
-            "Log_numx={0}_numy={1}_{2}={3:.3f}.log".format(
-                numx, numy, fixed_which, fixed_param
-            )
-        The default value `None` implies `log/SpinModel/` relative to the
-        current working directory.
-    **kwargs
-        Other keyword arguments are passed to the `GS` method of JKGModelSolver
+        The number of lattice site along the 2nd translation vector.
+    site_num: int
+        The number of lattice site of the system.
     """
 
-    assert fixed_which in ("alpha", "beta")
+    def _TermMatrix(self):
+        # Check whether the matrix representation for the J, K, Gamma,
+        # Gamma' term exist on the "tmp/" directory relative to the current
+        # working directory(CWD). If exist, load these matrices; if not,
+        # calculate the matrix representation and save the result to the
+        # "tmp/" directory relative CWD, the "tmp/" directory is created if
+        # necessary.
 
-    if log_dir is None:
-        log_dir = "log/SpinModel/"
-    log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_name_template = "Log_numx={0}_numy={1}_{2}={3:.3f}.log"
-    log_full_name = log_dir / log_name_template.format(
-        numx, numy, fixed_which, fixed_param
-    )
+        # Prepare HJ, HK, HG first
+        super()._TermMatrix()
 
-    formatter = logging.Formatter(
-        "%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    handler = logging.FileHandler(log_full_name)
-    handler.setFormatter(formatter)
-    logger = logging.getLogger()
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+        file_HGP = Path("tmp/") / "TRIANGLE_NUMX={0}_NUMY={1}_HGP.npz".format(
+            self._numx, self._numy
+        )
 
-    logger.info("Program start running")
-    solver = JKGModelSolver(numx=numx, numy=numy)
-    if fixed_which == "alpha":
-        betas = np.arange(0, 2, step)
-        alphas = np.zeros(betas.shape, dtype=np.float64) + fixed_param
-    else:
-        alphas = np.arange(0, 1 + step/2, step)
-        betas = np.zeros(alphas.shape, dtype=np.float64) + fixed_param
+        logger = logging.getLogger(__name__).getChild(
+            ".".join([self.__class__.__name__, "TermMatrix"])
+        )
+        if file_HGP.exists():
+            t0 = time()
+            HGP = load_npz(file_HGP)
+            t1 = time()
+            logger.info("Load HGP, dt=%.6fs", t1 - t0)
+        else:
+            site_num = self._site_num
+            all_bonds = self._bonds()
+            configs = [("x", "y", "z"), ("y", "z", "x"), ("z", "x", "y")]
 
-    msg_template = "alpha={0:.3f}, beta={1:.3f}, dt={2:.3f}s"
-    for alpha, beta in zip(alphas, betas):
-        t0 = time()
-        solver.GS(alpha=alpha, beta=beta, **kwargs)
-        t1 = time()
-        msg = msg_template.format(alpha, beta, t1 - t0)
-        logger.info(msg)
-    logger.info("Program stop running")
+            HGP = 0.0
+            msg = "%s-bond: %2d/%2d, dt=%.6fs"
+            m_func = SpinInteraction.matrix_function
+            for (gamma, alpha, beta), bonds in zip(configs, all_bonds):
+                bond_num = len(bonds)
+                for count, (index0, index1) in enumerate(bonds, start=1):
+                    t0 = time()
+                    HGP += m_func([(index0, alpha), (index1, gamma)], site_num)
+                    HGP += m_func([(index0, gamma), (index1, alpha)], site_num)
+                    HGP += m_func([(index0, beta), (index1, gamma)], site_num)
+                    HGP += m_func([(index0, gamma), (index1, beta)], site_num)
+                    t1 = time()
+                    logger.info(msg, gamma, count, bond_num, t1 - t0)
+            save_npz(file_HGP, HGP, compressed=False)
+
+        # The self._cache on the right side has already been set properly by
+        # calling super()._TermMatrix()
+        self._cache = self._cache + (HGP, )
+
+    def GS(self, gs_path="data/SpinModel/", tol=0.0, **model_params):
+        """
+        Calculate the ground state energy and vector of the J-K-Gamma-Gamma'
+        model Hamiltonian.
+
+        This method assumes that the ground state data are stored in
+        pytables-files(hdf5-files) located in the specified `gs_path`. The
+        names of the hdf5-files have the following pattern:
+          "GS_numx={numx}_numy={numy}_J={J:.4f}_K={K:.4f}_G={G:.4f}.zlib.h5"
+        The ground state vector for a specific `J, K, G, GP` is stored
+        in the hdf5-file as a `tables.CArray`, the model parameters
+        `J, K, G, GP` and ground state energy `gse` are saved as attributes
+        of the `tables.CArray`. The names of the `tables.CArray` have the
+        following pattern:
+          "GS_numx={numx}_numy={numy}_J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}"
+        The variables in the "{}"s are replaced with the actual variables.
+
+        This method first check whether the ground state data for the given
+        `J, K, G, GP` exists in the given `gs_path`:
+            1. If exist, then stop;
+            2. If the requested data does not exist in the given `gs_path`:
+                2.1 Calculate the ground state data;
+                2.2 Save the ground state data according to the rules just
+                described.
+
+        Parameters
+        ----------
+        gs_path : str, optional
+            Where to save the ground state data. It can be an absolute path
+            or a path relative to the current working directory(CWD). The
+            specified `gs_path` will be created if necessary.
+            Default: "data/SpinModel/"(Relative to CWD).
+        tol : float, optional
+            Relative accuracy for eigenvalues (stop criterion).
+            The default value 0 implies machine precision.
+        model_params : optional
+            The model parameters recognized by this method are `J`, `K`,
+            `G` and `GP`. All other keyword arguments are simply ignored.
+            If `J`, `K` , `G`, `GP` are not specified, the default value
+            defined in class variable `DEFAULT_MODEL_PARAMS` will be used.
+
+            J is the coefficient of the Heisenberg term.
+            K is the coefficient of the Kitaev term.
+            G is the coefficient of the Gamma term.
+            GP is the coefficient of the Gamma' term.
+        """
+
+        actual_model_params = dict(self.DEFAULT_MODEL_PARAMS)
+        actual_model_params.update(model_params)
+        J = actual_model_params["J"]
+        K = actual_model_params["K"]
+        G = actual_model_params["G"]
+        GP = actual_model_params["GP"]
+
+        prefix = "GS_numx={0}_numy={1}".format(self._numx, self._numy)
+        fixed_params = "J={J:.4f}_K={K:.4f}_G={G:.4f}".format(J=J, K=K, G=G)
+        full_params = "J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}".format(
+            J=J, K=K, G=G, GP=GP
+        )
+
+        # `gs_path` is created if not exist
+        Path(gs_path).mkdir(exist_ok=True, parents=True)
+        hdf5_file_name = "".join(
+            [gs_path, prefix, "_", fixed_params, ".zlib.h5"]
+        )
+        ket_name = "".join([prefix, "_", full_params])
+
+        logger = logging.getLogger(__name__).getChild(
+            ".".join([self.__class__.__name__, "GS"])
+        )
+        if self._already_exist(hdf5_file_name, ket_name):
+            msg = "GS for J=%.4f, K=%.4f, G=%.4f, GP=%.4f already exist"
+            logger.info(msg, J, K, G, GP)
+        else:
+            if not hasattr(self, "_cache"):
+                self._TermMatrix()
+            HJ, HK, HG, HGP = self._cache
+
+            t0 = time()
+            gse, ket = eigsh(
+                J * HJ + K * HK + G * HG + GP * HGP, k=1, which="SA", tol=tol
+            )
+            t1 = time()
+            msg = "J=%.4f, K=%.4f, G=%.4f, GP=%.4f, dt=%.6fs"
+            logger.info(msg, J, K, G, GP, t1 - t0)
+
+            # Save the ground state data
+            attrs = {
+                "numx": self._numx, "numy": self._numy,
+                "J": J, "K": K, "G": G, "GP": GP, "gse": gse,
+            }
+            self._save_data(hdf5_file_name, ket_name, ket, attrs=attrs)
+            logger.info("Save GS data to %s:/%s", hdf5_file_name, ket_name)
+
+    __call__ = GS
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Parse command line arguments."
+    import sys
+    logging.basicConfig(
+        level=logging.INFO, stream=sys.stdout,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
     )
 
-    parser.add_argument(
-        "--fixed_which", type=str, default="alpha",
-        help="Set which model parameter to be fixed (Default: %(default)s).",
-        choices=("alpha", "beta")
-    )
-    parser.add_argument(
-        "--fixed_param", type=float, default=0.5,
-        help="The value of the fixed model parameter (Default: %(default)s)."
-    )
-    parser.add_argument(
-        "--numx", type=int, default=3,
-        help="The number of lattice site along the 1st translation vector "
-             "(Default: %(default)s)."
-    )
-    parser.add_argument(
-        "--numy", type=int, default=4,
-        help="The number of lattice site along the 2nd translation vector "
-             "(Default: %(default)s)."
-    )
-    parser.add_argument(
-        "--step", type=float, default=0.01,
-        help="The step of variable model parameter (Default: %(default)s)."
-    )
-    parser.add_argument(
-        "--tol", type=float, default=1e-8,
-        help="The relative accuracy for eigenvalues (stop criterion) "
-             "(Default: %(default)s)."
-    )
-    args = parser.parse_args()
-    main(
-        fixed_param=args.fixed_param,
-        fixed_which=args.fixed_which,
-        numx=args.numx,
-        numy=args.numy,
-        step=args.step,
-        tol=args.tol,
-    )
+    numx = 3
+    numy = 4
+    solver0 = JKGModelSolver(numx, numy)
+    solver1 = JKGGPModelSolver(numx, numy)
+
+    solver0(alpha=1.2, beta=0.8)
+    solver0(alpha=1.2, beta=0.8)
+    solver0(alpha=1.0, beta=0.6)
+    solver0(alpha=1.0, beta=0.7)
+
+    solver1(J=-1, K=-6, G=8, GP=-4)
+    solver1(J=-1, K=-6, G=8, GP=-4)
+    solver1(J=1, K=6, G=-8, GP=4)
+    solver1(J=1, K=6, G=-8, GP=5)
