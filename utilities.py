@@ -3,6 +3,13 @@ This module provides utility programs used in this project.
 """
 
 
+__all__ = [
+    "TriangularLattice",
+    "ShowVectorField2D",
+    "ShowVectorField3D",
+]
+
+
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
