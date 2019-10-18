@@ -5,6 +5,7 @@ This module provides utility programs used in this project.
 
 __all__ = [
     "TriangularLattice",
+    "derivation",
     "ShowVectorField2D",
     "ShowVectorField3D",
 ]
@@ -170,6 +171,44 @@ class TriangularLattice:
         """
 
         return self._x_bonds, self._y_bonds, self._z_bonds
+
+
+def derivation(xs, ys, nth=1):
+    """
+    Calculate the nth derivatives of `ys` versus `xs` discretely.
+
+    The derivatives are calculated using the following formula:
+        dy / dx = (ys[i+1] - ys[i]) / (xs[i+1] - xs[i])
+
+    Parameters
+    ----------
+    xs : 1-D array
+        The independent variables.
+        `xs` is assumed to be sorted in ascending order and there are no
+        identical values in `xs`.
+    ys : 1-D array
+        The dependent variables.
+        `ys` should be of the same length as `xs`.
+    nth : int, optional
+        The nth derivatives.
+        Default: 1.
+
+    Returns
+    -------
+    xs : 1-D array
+        The independent variables.
+    ys : 1-D array
+        The nth derivatives corresponding to the returned `xs`.
+    """
+
+    assert isinstance(nth, int) and nth >= 0
+    assert isinstance(xs, np.ndarray) and xs.ndim == 1
+    assert isinstance(ys, np.ndarray) and ys.shape == xs.shape
+
+    for i in range(nth):
+        ys = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
+        xs = (xs[1:] + xs[:-1]) / 2
+    return xs, ys
 
 
 def Vectors2Colors(vectors):
