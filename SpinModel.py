@@ -83,15 +83,18 @@ class JKGModelEDSolver(TriangularLattice):
             save_npz(file_HG, HG, compressed=True)
         return HJ, HK, HG
 
-    def GS(self, gs_path="data/SpinModel/", tol=0.0, **model_params):
+    def GS(
+            self, gs_path="data/SpinModel/GS/", v0=None, tol=0.0, **model_params
+    ):
         """
         Calculate the ground state energy and vector of the J-K-G model.
 
         This method saves the ground state data into a single file in
         compressed `.npz` format. The `.npz` files will be saved into the given
         `gs_path` and the names of the `.npz` files have the following pattern:
-            "GS_numx={numx}_numy={numy}_alpha={alpha:.3f}_beta={beta:.3f}.npz"
+            "GS_numx={numx}_numy={numy}_alpha={alpha:.4f}_beta={beta:.4f}.npz"
         The variables in the "{}"s are replaced with the actual variables.
+        The lattice size `numx` and `numy` are stored with keyword name: `size`;
         The model parameters `alpha` and `beta` are stored with keyword
         name: `parameters`;
         The ground state energy is stored with keyword name: `gse`;
@@ -113,7 +116,11 @@ class JKGModelEDSolver(TriangularLattice):
             Where to save the ground state data. It can be an absolute path
             or a path relative to the current working directory(CWD). The
             specified `gs_path` will be created if necessary.
-            Default: "data/SpinModel/"(Relative to CWD).
+            Default: "data/SpinModel/GS/"(Relative to CWD).
+        v0 : np.ndarray, optional
+            Starting vector for iteration. This parameter is passed to the
+            `scipy.sparse.linalg.eigsh` as the `v0` parameter.
+            Default: None.
         tol : float, optional
             Relative accuracy for eigenvalues (stop criterion).
             The default value 0 implies machine precision.
@@ -126,8 +133,8 @@ class JKGModelEDSolver(TriangularLattice):
             J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
             K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
             G = np.cos(alpha * np.pi)
-            J is the coefficient of the Heisenberg term.
-            K is the coefficient of the Kitaev term.
+            J is the coefficient of the Heisenberg term;
+            K is the coefficient of the Kitaev term;
             G is the coefficient of the Gamma term.
 
         Returns
@@ -143,6 +150,7 @@ class JKGModelEDSolver(TriangularLattice):
         See also
         --------
         numpy.savez_compressed
+        scipy.sparse.linalg.eigsh
         """
 
         actual_model_params = dict(self.DEFAULT_MODEL_PARAMETERS)
@@ -161,7 +169,7 @@ class JKGModelEDSolver(TriangularLattice):
         del HG
 
         gs_path = Path(gs_path)
-        gs_name_temp = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
+        gs_name_temp = "GS_numx={0}_numy={1}_alpha={2:.4f}_beta={3:.4f}.npz"
         gs_full_name = gs_path / gs_name_temp.format(
             self.numx, self.numy, alpha, beta
         )
@@ -176,14 +184,15 @@ class JKGModelEDSolver(TriangularLattice):
             logger.info("Load GS data from %s", gs_full_name)
         else:
             t0 = time()
-            gse, ket = eigsh(HM, k=1, which="SA", tol=tol)
+            gse, ket = eigsh(HM, k=1, which="SA", v0=v0, tol=tol)
             t1 = time()
-            msg = "GS for alpha=%.3f, beta=%.3f, dt=%.4fs"
+            msg = "GS for alpha=%.4f, beta=%.4f, dt=%.4fs"
             logger.info(msg, alpha, beta, t1 - t0)
 
             gs_path.mkdir(exist_ok=True, parents=True)
             np.savez_compressed(
-                gs_full_name, parameters=[alpha, beta], gse=gse, ket=ket
+                gs_full_name, size=[self.numx, self.numy],
+                parameters=[alpha, beta], gse=gse, ket=ket,
             )
             logger.info("Save GS data to %s", gs_full_name)
         return gse[0], ket, HM
@@ -266,15 +275,18 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             save_npz(file_HGP, HGP, compressed=True)
         return HJ, HK, HG, HGP
 
-    def GS(self, gs_path="data/SpinModel/", tol=0.0, **model_params):
+    def GS(
+            self, gs_path="data/SpinModel/GS/", v0=None, tol=0.0, **model_params
+    ):
         """
         Calculate the ground state energy and vector of the J-K-G-GP model.
 
         This method saves the ground state data into a single file in
         compressed `.npz` format. The `.npz` files will be saved into the given
         `gs_path` and the names of the `.npz` files have the following pattern:
-            "GS_numx={numx}_numy={numy}_J={J:.3f}_K={K:.3f}_G={G:.3f}_GP={GP:.3f}.npz"
+            "GS_numx={numx}_numy={numy}_J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz"
         The variables in the "{}"s are replaced with the actual variables.
+        The lattice size `numx` and `numy` are stored with keyword name: `size`;
         The model parameters `J`, `K`, `G` and `GP` are stored with keyword
         name: `parameters`;
         The ground state energy is stored with keyword name: `gse`;
@@ -296,7 +308,11 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             Where to save the ground state data. It can be an absolute path
             or a path relative to the current working directory(CWD). The
             specified `gs_path` will be created if necessary.
-            Default: "data/SpinModel/"(Relative to CWD).
+            Default: "data/SpinModel/GS/"(Relative to CWD).
+        v0 : np.ndarray, optional
+            Starting vector for iteration. This parameter is passed to the
+            `scipy.sparse.linalg.eigsh` as the `v0` parameter.
+            Default: None.
         tol : float, optional
             Relative accuracy for eigenvalues (stop criterion).
             The default value 0 implies machine precision.
@@ -306,9 +322,9 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             If `J`, `K` , `G`, `GP` are not specified, the default value
             defined in class variable `DEFAULT_MODEL_PARAMETERS` will be used.
 
-            J is the coefficient of the Heisenberg term.
-            K is the coefficient of the Kitaev term.
-            G is the coefficient of the Gamma term.
+            J is the coefficient of the Heisenberg term;
+            K is the coefficient of the Kitaev term;
+            G is the coefficient of the Gamma term;
             GP is the coefficient of the Gamma' term.
         """
 
@@ -329,8 +345,8 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         del HG
 
         gs_path = Path(gs_path)
-        gs_full_name = gs_path / "GS_numx={numx}_numy={numy}_J={J:.3f}_" \
-                       "K={K:.3f}_G={G:.3f}_GP={GP:.3f}.npz".format(
+        gs_full_name = gs_path / "GS_numx={numx}_numy={numy}_J={J:.4f}_" \
+                       "K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz".format(
             numx=self.numx, numy=self.numy, J=J, K=K, G=G, GP=GP
         )
 
@@ -345,69 +361,15 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             logger.info("Load GS data from %s", gs_full_name)
         else:
             t0 = time()
-            gse, ket = eigsh(HM, k=1, which="SA", tol=tol)
+            gse, ket = eigsh(HM, k=1, which="SA", v0=v0, tol=tol)
             t1 = time()
-            msg = "GS for J=%.3f, K=%.3f, G=%.3f, GP=%.3f, dt=%.4fs"
+            msg = "GS for J=%.4f, K=%.4f, G=%.4f, GP=%.4f, dt=%.4fs"
             logger.info(msg, J, K, G, GP, t1 - t0)
 
             gs_path.mkdir(exist_ok=True, parents=True)
             np.savez_compressed(
-                gs_full_name, parameters=[J, K, G, GP], gse=gse, ket=ket
+                gs_full_name, size=[self.numx, self.numy],
+                parameters=[J, K, G, GP], gse=gse, ket=ket,
             )
             logger.info("Save GS data to %s", gs_full_name)
         return gse[0], ket, HM
-
-
-if __name__ == "__main__":
-    import sys
-    import matplotlib.pyplot as plt
-    from utilities import derivation
-
-    numx = 3
-    numy = 4
-    logging.basicConfig(
-        level=logging.INFO,
-        stream=sys.stdout,
-        # filename="log/Log_numx={0}_numy={1}.log".format(numx, numy),
-        format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-    )
-
-    solver0 = JKGModelEDSolver(numx, numy)
-    solver1 = JKGGPModelEDSolver(numx, numy)
-
-    solver0.GS()
-    solver0.GS(alpha=1.2, beta=0.8)
-    solver0.GS(alpha=1.2, beta=0.8)
-    solver0.GS(alpha=1.0, beta=0.6)
-    solver0.GS(alpha=1.0, beta=0.7)
-
-    solver1.GS()
-    solver1.GS(J=-1, K=-6, G=8, GP=-4)
-    solver1.GS(J=-1, K=-6, G=8, GP=-4)
-    solver1.GS(J=1, K=6, G=-8, GP=4)
-    solver1.GS(J=1, K=6, G=-8, GP=5)
-
-    alpha = 0.5
-    betas = np.arange(0, 2, 0.005)
-    for beta in betas:
-        solver0.GS(alpha=alpha, beta=beta)
-
-    gses = []
-    gs_path = "data/SpinModel/"
-    gs_name_temp = "GS_numx={0}_numy={1}_alpha={2:.3f}_beta={3:.3f}.npz"
-    for beta in betas:
-        gs_full_name = gs_path + gs_name_temp.format(numx, numy, alpha, beta)
-        with np.load(gs_full_name) as ld:
-            gse = ld["gse"][0]
-        gses.append(gse)
-    gses = np.array(gses, dtype=np.float64)
-    d2betas, d2gses = derivation(betas, gses, nth=2)
-
-    fig, ax_Es = plt.subplots()
-    ax_d2Es = ax_Es.twinx()
-
-    ax_Es.plot(betas, gses, color="tab:blue")
-    ax_d2Es.plot(d2betas, -d2gses/(np.pi ** 2), color="tab:orange")
-    ax_Es.set_xlim(0, 2)
-    plt.show()
-    plt.close("all")
