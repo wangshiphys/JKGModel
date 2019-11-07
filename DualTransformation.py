@@ -1,7 +1,14 @@
 """
-This module provide functions for visualizing the FM and 120 degree Neel
+This module provide functions for visualizing the FM and 120-degree Neel
 order as well as the results of Four-Sublattice transformation.
 """
+
+
+__all__ = [
+    "T1", "T1T4",
+    "GenerateFMOrder", "GenerateNeelOrder",
+    "Show120Neel", "ShowFMT1T4", "ShowNeelT1T4",
+]
 
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -64,9 +71,9 @@ def GenerateNeelOrder(points, cell_vectors=None):
     points : np.ndarray
         The coordinates of the points on which the spin vectors are defined.
     cell_vectors : np.ndarray with shape (3, 3) or None
-        The spin vectors for the magnetic unit cell.
-        If None, random 120 degree Neel ordered unit-cell spin vectors are
-        generated.
+        The spin vectors for the magnetic unit cell, every row represent a
+        spin vector. If None, random 120 degree Neel ordered unit-cell spin
+        vectors are generated.
 
     Returns
     -------
@@ -96,13 +103,19 @@ def GenerateNeelOrder(points, cell_vectors=None):
     return np.array(spin_vectors, dtype=np.float64)
 
 
-# All spin vectors are rotated about the (111)-axis by 180 degree
-def _T1(points, spin_vectors):
+def T1(points, spin_vectors):
+    """
+    Rotate all spin vectors about the (111)-axis by 180 degree.
+    """
+
     return np.dot(R111_180, spin_vectors.T).T
 
 
-# Four-Sublattice transformation of the spin vectors
-def _T4(points, spin_vectors):
+def T4(points, spin_vectors):
+    """
+    Perform Four-Sublattice transformation for the given spin vectors.
+    """
+
     rotated_vectors = []
     for point, vector in zip(points, spin_vectors):
         index = FOUR_SUBLATTICE_TRANSFORMATION_CELL.getIndex(point, fold=True)
@@ -111,9 +124,12 @@ def _T4(points, spin_vectors):
     return np.array(rotated_vectors, dtype=np.float64)
 
 
-# Combination of T1 and T4
-def _T1T4(points, spin_vectors):
-    return _T1(points, _T4(points, spin_vectors))
+def T1T4(points, spin_vectors):
+    """
+    Combination of T1 and T4 (T4 followed by T1)
+    """
+
+    return T1(points, T4(points, spin_vectors))
 
 
 def Show120Neel(points, cell_vectors=None, *, markersize=10, **kwargs):
@@ -128,10 +144,10 @@ def Show120Neel(points, cell_vectors=None, *, markersize=10, **kwargs):
     plt.close("all")
 
 
-def FMT1T4(points, cell_vectors=None, *, markersize=10, **kwargs):
+def ShowFMT1T4(points, cell_vectors=None, *, markersize=10, **kwargs):
     original_vectors = GenerateFMOrder(points, cell_vectors)
-    T4_rotated_vectors = _T4(points, original_vectors)
-    T1T4_rotated_vectors = _T1T4(points, original_vectors)
+    T4_rotated_vectors = T4(points, original_vectors)
+    T1T4_rotated_vectors = T1T4(points, original_vectors)
 
     fig_original = plt.figure("original")
     ax_original = fig_original.add_subplot(111, projection="3d")
@@ -158,10 +174,10 @@ def FMT1T4(points, cell_vectors=None, *, markersize=10, **kwargs):
     plt.close("all")
 
 
-def NeelT1T4(points, cell_vectors=None, *, markersize=10, **kwargs):
+def ShowNeelT1T4(points, cell_vectors=None, *, markersize=10, **kwargs):
     original_vectors = GenerateNeelOrder(points, cell_vectors)
-    T4_rotated_vectors = _T4(points, original_vectors)
-    T1T4_rotated_vectors = _T1T4(points, original_vectors)
+    T4_rotated_vectors = T4(points, original_vectors)
+    T1T4_rotated_vectors = T1T4(points, original_vectors)
 
     fig_original = plt.figure("original")
     ax_original = fig_original.add_subplot(111, projection="3d")
@@ -189,10 +205,11 @@ def NeelT1T4(points, cell_vectors=None, *, markersize=10, **kwargs):
 
 
 if __name__ == "__main__":
-    numx = numy = 12
+    numx = 12
+    numy = 12
     site_num = numx * numy
     cluster = lattice_generator("triangle", num0=numx, num1=numy)
 
     Show120Neel(cluster.points)
-    FMT1T4(cluster.points)
-    NeelT1T4(cluster.points)
+    ShowFMT1T4(cluster.points)
+    ShowNeelT1T4(cluster.points)
