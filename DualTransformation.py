@@ -5,7 +5,7 @@ order as well as the results of Four-Sublattice transformation.
 
 
 __all__ = [
-    "T1", "T1T4",
+    "T1", "T4", "T1T4",
     "GenerateFMOrder", "GenerateNeelOrder",
     "Show120Neel", "ShowFMT1T4", "ShowNeelT1T4",
 ]
