@@ -106,6 +106,9 @@ venv.bak/
 # PyCharm
 .idea/
 
+# vscode
+.vscode/
+
 # log file
 log/
 
@@ -117,3 +120,6 @@ fig/
 
 # tmp file
 tmp/
+
+# Execute script
+run/
