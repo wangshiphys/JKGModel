@@ -84,7 +84,8 @@ class JKGModelEDSolver(TriangularLattice):
         return HJ, HK, HG
 
     def GS(
-            self, gs_path="data/SpinModel/GS/", v0=None, tol=0.0, **model_params
+            self, gs_path="data/QuantumSpinModel/GS/",
+            v0=None, tol=0.0, **model_params,
     ):
         """
         Calculate the ground state energy and vector of the J-K-G model.
@@ -116,7 +117,7 @@ class JKGModelEDSolver(TriangularLattice):
             Where to save the ground state data. It can be an absolute path
             or a path relative to the current working directory(CWD). The
             specified `gs_path` will be created if necessary.
-            Default: "data/SpinModel/GS/"(Relative to CWD).
+            Default: "data/QuantumSpinModel/GS/"(Relative to CWD).
         v0 : np.ndarray, optional
             Starting vector for iteration. This parameter is passed to the
             `scipy.sparse.linalg.eigsh` as the `v0` parameter.
@@ -276,7 +277,8 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         return HJ, HK, HG, HGP
 
     def GS(
-            self, gs_path="data/SpinModel/GS/", v0=None, tol=0.0, **model_params
+            self, gs_path="data/QuantumSpinModel/GS/",
+            v0=None, tol=0.0, **model_params,
     ):
         """
         Calculate the ground state energy and vector of the J-K-G-GP model.
@@ -308,7 +310,7 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             Where to save the ground state data. It can be an absolute path
             or a path relative to the current working directory(CWD). The
             specified `gs_path` will be created if necessary.
-            Default: "data/SpinModel/GS/"(Relative to CWD).
+            Default: "data/QuantumSpinModel/GS/"(Relative to CWD).
         v0 : np.ndarray, optional
             Starting vector for iteration. This parameter is passed to the
             `scipy.sparse.linalg.eigsh` as the `v0` parameter.
