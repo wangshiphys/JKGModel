@@ -67,12 +67,13 @@ class TriangularLattice:
             bond_index = (index0, index1)
 
             azimuth = bond.getAzimuth(ndigits=0)
+            # The definition of x, y, z bond in a trio is counterclockwise.
             if azimuth in (-180, 0, 180):
                 x_bonds.append(bond_index)
             elif azimuth in (-120, 60):
-                y_bonds.append(bond_index)
-            elif azimuth in (-60, 120):
                 z_bonds.append(bond_index)
+            elif azimuth in (-60, 120):
+                y_bonds.append(bond_index)
             else:
                 raise ValueError("Invalid azimuth: {0}".format(azimuth))
 
