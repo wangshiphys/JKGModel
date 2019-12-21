@@ -138,6 +138,7 @@ ax_south.annotate(
     arrowprops={"arrowstyle": "->", "connectionstyle": "angle3"},
 )
 
+fig.text(0, 1, "(a)", fontsize="large", ha="left", va="top")
 fig.set_size_inches(18, 9)
 plt.show()
 # fig.savefig("figures/GlobalPhaseDiagram.pdf", dpi=200)
