@@ -8,6 +8,7 @@ __all__ = [
     "derivation",
     "ShowVectorField2D",
     "ShowVectorField3D",
+    "mykron0", "mykron1",
 ]
 
 
@@ -15,6 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 
+from numba import complex128, jit, void
 from HamiltonianPy import lattice_generator
 
 
@@ -330,6 +332,33 @@ def ShowVectorField3D(ax, points, vectors, title="", markersize=10, **kwargs):
     )
     ax.set_title(title, fontsize="xx-large")
     return ax
+
+
+@jit(
+    void(complex128[:], complex128[:], complex128[:]),
+    nopython=True, cache=True
+)
+def mykron0(a, b, out):
+    num_a = a.shape[0]
+    num_b = b.shape[0]
+    for i in range(num_a):
+        ai = a[i]
+        index = i * num_b
+        for j in range(num_b):
+            out[index + j] = ai * b[j]
+
+
+@jit(complex128[:](complex128[:], complex128[:]), nopython=True, cache=True)
+def mykron1(a, b):
+    num_a = a.shape[0]
+    num_b = b.shape[0]
+    out = np.zeros(num_a * num_b, dtype=np.complex128)
+    for i in range(num_a):
+        ai = a[i]
+        index = i * num_b
+        for j in range(num_b):
+            out[index + j] = ai * b[j]
+    return out
 
 
 if __name__ == "__main__":
