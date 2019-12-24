@@ -50,12 +50,12 @@ ax.plot(point5[0], point5[1], ls="", marker="o", ms=MS, color="tab:pink")
 ax.plot(point6[0], point6[1], ls="", marker="o", ms=MS, color="tab:cyan")
 
 ax.text(
-    0.50, 0.0, "x",
+    -0.50, 0.0, "x",
     fontsize="xx-large", ha="center", va="bottom", color="tab:red",
 )
 ax.text(
-    0.75, np.sqrt(3)/4, "y",
-    fontsize="xx-large", ha="right", va="top", color="tab:green",
+    0.25, -np.sqrt(3)/4, "y",
+    fontsize="xx-large", ha="left", va="bottom", color="tab:green",
 )
 ax.text(
     0.25, np.sqrt(3)/4, "z",
@@ -63,18 +63,17 @@ ax.text(
 )
 
 ax.text(
-    0, 1, "(a)",
+    0, 0.98, "(b)",
     fontsize="xx-large", ha="left", va="top", transform=ax.transAxes
 )
 
-ax.set_xlim(-1.05, 1.05)
-ax.set_ylim(-0.95, 0.95)
+ax.set_xlim(-1.1, 1.1)
+ax.set_ylim(-1.0, 1.0)
 ax.set_aspect("equal")
-fig.set_size_inches(8, 7.4)
+fig.set_size_inches(4, 4)
 ax.set_axis_off()
 plt.show()
 # fig.savefig("figures/ModelDefinition.pdf", dpi=200)
 # fig.savefig("figures/ModelDefinition.png", dpi=200)
 # fig.savefig("figures/ModelDefinition.jpg", dpi=200)
-# fig.savefig("figures/ModelDefinition.eps", dpi=200)
 plt.close("all")
