@@ -13,7 +13,7 @@ fig, axes = plt.subplots(
 sub_fig_tags = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
 params = [
     (0.00, 0.00), (1.00, 0.00), (0.50, 0.00),
-    (0.30, 0.25), (0.75, 0.25), (0.05, 0.02),
+    (0.30, 0.25), (0.70, 0.66), (0.05, 0.02),
 ]
 for index, (tag, (alpha, beta)) in enumerate(zip(sub_fig_tags, params)):
     data_file_name = DATA_PATH + DATA_NAME_TEMP.format(NUMX, NUMY, alpha, beta)
@@ -59,7 +59,7 @@ for j, (J, K, G) in enumerate(tmp):
         fontsize="large", ha="center", va="top",
         transform=axes[0, j].transAxes
     )
-tmp = [(0.30, 0.25), (0.75, 0.25), (0.05, 0.02)]
+tmp = [(0.30, 0.25), (0.70, 0.66), (0.05, 0.02)]
 for j, (alpha, beta) in enumerate(tmp):
     axes[1, j].text(
         0.5, 0.96, r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(alpha, beta),
