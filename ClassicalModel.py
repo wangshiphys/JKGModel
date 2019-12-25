@@ -14,7 +14,7 @@ import numpy as np
 import tables as tb
 from scipy.optimize import basinhopping
 
-from utilities import *
+from utilities import TriangularLattice, ShowVectorField3D
 
 
 __all__ = [
@@ -89,11 +89,11 @@ class JKGModelClassicalSolver(TriangularLattice):
             [sin_phis * sin_thetas, sin_phis * cos_thetas, cos_phis],
             dtype=np.float64
         ).T
-        energy_per_site = res.fun / self._site_num
+        energy_per_site = res.fun / self.site_num
 
         Path(data_path).mkdir(exist_ok=True, parents=True)
         h5f_name = "OSC_numx={0}_numy={1}_alpha={2:.4f}_beta={3:.4f}.h5".format(
-            self.numx, self.numy, alpha, beta
+            self.num1, self.num2, alpha, beta
         )
         h5f = tb.open_file(data_path + h5f_name, mode="a")
         try:
@@ -101,8 +101,8 @@ class JKGModelClassicalSolver(TriangularLattice):
         except AttributeError:
             current_count = 0
             h5f.set_node_attr("/", "count", current_count)
-            h5f.set_node_attr("/", "numx", self.numx)
-            h5f.set_node_attr("/", "numy", self.numy)
+            h5f.set_node_attr("/", "numx", self.num1)
+            h5f.set_node_attr("/", "numy", self.num2)
             h5f.set_node_attr("/", "alpha", alpha)
             h5f.set_node_attr("/", "beta", beta)
 
