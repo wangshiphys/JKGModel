@@ -52,19 +52,14 @@ axes[1, 2].set_xlabel(r"$k_x/\pi$", fontsize="large")
 axes[0, 0].set_ylabel(r"$k_y/\pi$", fontsize="large")
 axes[1, 0].set_ylabel(r"$k_y/\pi$", fontsize="large")
 
-tmp = [(0, 0, 1), (0, 0, -1), (0, 1, 0)]
-for j, (J, K, G) in enumerate(tmp):
-    axes[0, j].text(
-        0.5, 0.96, r"$J={0:d},K={1:d},\Gamma={2:d}$".format(J, K, G),
-        fontsize="large", ha="center", va="top",
-        transform=axes[0, j].transAxes
-    )
+titles = [r"$J=K=0,\Gamma=1$", r"$J=K=0,\Gamma=-1$", r"$J=\Gamma=0,K=1$"]
+for j, title in enumerate(titles):
+    axes[0, j].set_title(title, fontsize="large")
 tmp = [(0.30, 0.25), (0.70, 0.66), (0.05, 0.02)]
 for j, (alpha, beta) in enumerate(tmp):
-    axes[1, j].text(
-        0.5, 0.96, r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(alpha, beta),
-        fontsize="large", ha="center", va="top",
-        transform=axes[1, j].transAxes
+    axes[1, j].set_title(
+        r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(alpha, beta),
+        fontsize="large",
     )
 
 fig.set_size_inches(18, 9)
