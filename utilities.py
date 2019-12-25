@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from numba import complex128, jit, void
-from HamiltonianPy import lattice_generator
+from HamiltonianPy import Lattice
 
 
 class TriangularLattice:
@@ -38,26 +38,55 @@ class TriangularLattice:
         "J": -1.0, "K": 0.0, "G": 0.0, "GP": 0.0,
     }
 
-    def __init__(self, numx, numy=None):
+    def __init__(self, num1, num2=None, which="xz"):
         """
         Customize the newly created instance.
 
+        On triangular lattice, the nearest-neighbor (NN) bonds along the
+        zero-degree direction is defined as the x-type bond (x-bond); NN bonds
+        along the 120-degree direction is defined as the y-type bond (y-bond);
+        NN bonds along the 60-degree direction is defined as the z-type bond
+        (z-bond). The definition of the x, y, z bond is counterclockwise.
+
         Parameters
         ----------
-        numx : int
+        num1 : int
             The number of lattice site along the 1st translation vector.
-        numy : int or None, optional
+        num2 : int or None, optional
             The number of lattice site along the 2nd translation vector.
-            The default value `None` implies that `numy` takes the same value
-            as `numx`.
+            The default value `None` implies that `num2` takes the same value
+            as `num1`.
+        which : ["xy" | "yz" | "zx" | "yx" | "zy" | "xz"], optional
+            Define the direction of the cluster. This parameter determine the
+            interpretation of the `num1` and `num2` parameters. For example,
+            if `which` is set to "xy", then there are `num1` lattice sites
+            along the x-bond direction and `num2` lattice sites along the
+            y-bond direction.
+            Default: "xz".
         """
 
-        assert isinstance(numx, int) and numx > 0
-        assert (numy is None) or (isinstance(numy, int) and numy > 0)
-        if numy is None:
-            numy = numx
+        assert isinstance(num1, int) and num1 > 0
+        assert (num2 is None) or (isinstance(num2, int) and num2 > 0)
+        assert which in ("xy", "yz", "zx", "yx", "zy", "xz")
+        if num2 is None:
+            num2 = num1
 
-        cluster = lattice_generator("triangle", num0=numx, num1=numy)
+        RX = np.array([1.0, 0.0], dtype=np.float64)
+        RY = np.array([-0.5, np.sqrt(3) / 2], dtype=np.float64)
+        RZ = np.array([0.5, np.sqrt(3) / 2], dtype=np.float64)
+        AS = {
+            "xy": np.array([RX, RY], dtype=np.float64),
+            "yz": np.array([RY, RZ], dtype=np.float64),
+            "zx": np.array([RZ, RX], dtype=np.float64),
+            "yx": np.array([RY, RX], dtype=np.float64),
+            "zy": np.array([RZ, RY], dtype=np.float64),
+            "xz": np.array([RX, RZ], dtype=np.float64),
+        }
+
+        As = AS[which]
+        vectors = As * np.array([[num1], [num2]])
+        points = np.dot([[i, j] for i in range(num1) for j in range(num2)], As)
+        cluster = Lattice(points=points, vectors=vectors, name=which)
         intra, inter = cluster.bonds(nth=1)
         x_bonds = []
         y_bonds = []
@@ -77,31 +106,49 @@ class TriangularLattice:
             elif azimuth in (-60, 120):
                 y_bonds.append(bond_index)
             else:
-                raise ValueError("Invalid azimuth: {0}".format(azimuth))
+                raise ValueError("Invalid bond azimuth: {0}".format(azimuth))
 
-        self._numx = numx
-        self._numy = numy
-        self._site_num = numx * numy
+        self._num1 = num1
+        self._num2 = num2
+        self._which = which
         self._cluster = cluster
         self._x_bonds = tuple(x_bonds)
         self._y_bonds = tuple(y_bonds)
         self._z_bonds = tuple(z_bonds)
 
     @property
-    def numx(self):
+    def num1(self):
         """
-        The `numx` attribute.
+        The `num1` attribute.
         """
 
-        return self._numx
+        return self._num1
 
     @property
-    def numy(self):
+    def num2(self):
         """
-        The `numy` attribute.
+        The `num2` attribute.
         """
 
-        return self._numy
+        return self._num2
+
+    @property
+    def which(self):
+        """
+        The `which` attribute.
+        """
+
+        return self._which
+
+    @property
+    def identity(self):
+        """
+        A identity of the cluster.
+        """
+
+        return "num1={0}_num2={1}_which={2}".format(
+            self._num1, self._num2, self._which
+        )
 
     @property
     def site_num(self):
@@ -109,7 +156,7 @@ class TriangularLattice:
         The `site_num` attribute.
         """
 
-        return self._site_num
+        return self._num1 * self._num2
 
     @property
     def cluster(self):
@@ -174,6 +221,42 @@ class TriangularLattice:
         """
 
         return self._x_bonds, self._y_bonds, self._z_bonds
+
+    def ShowNNBonds(self):
+        """
+        Show nearest neighbor bonds.
+        """
+
+        fig, ax = plt.subplots()
+        intra, inter = self.cluster.bonds(nth=1)
+        for ls, bonds in [("solid", intra), ("dashed", inter)]:
+            for bond in bonds:
+                (x0, y0), (x1, y1) = bond.endpoints
+                azimuth = bond.getAzimuth(ndigits=0)
+                if azimuth in (-180, 0, 180):
+                    color = "tab:red"
+                elif azimuth in (-120, 60):
+                    color = "tab:green"
+                elif azimuth in (-60, 120):
+                    color = "tab:blue"
+                else:
+                    raise ValueError("Invalid bond azimuth: {0}".format(azimuth))
+                ax.plot([x0, x1], [y0, y1], ls=ls, color=color)
+
+        for i in [-1, 0, 1]:
+            for j in [-1, 0, 1]:
+                dR = np.dot([i, j], self._cluster.vectors)
+                points = self.cluster.points + dR
+                ax.plot(points[:, 0], points[:, 1], ls="", marker="o")
+
+        ax.set_axis_off()
+        ax.set_aspect("equal")
+        try:
+            plt.get_current_fig_manager().window.showMaximized()
+        except Exception:
+            pass
+        plt.show()
+        plt.close("all")
 
 
 def derivation(xs, ys, nth=1):
@@ -362,9 +445,10 @@ def mykron1(a, b):
 
 
 if __name__ == "__main__":
-    numx = numy = 10
-    site_num = numx * numy
-    cluster = TriangularLattice(numx, numy)
+    num1 = num2 = 10
+    site_num = num1 * num2
+    lattice = TriangularLattice(num1, num2)
+    lattice.ShowNNBonds()
 
     vectors2D = np.random.random((site_num, 2))
     vectors3D = np.random.random((site_num, 3))
@@ -374,7 +458,7 @@ if __name__ == "__main__":
     fig = plt.figure("VectorField2D")
     ax = fig.add_subplot(111)
     ShowVectorField2D(
-        ax, cluster.cluster.points, vectors2D,
+        ax, lattice.cluster.points, vectors2D,
         markersize=8, title="VectorField2D"
     )
     ax.set_axis_off()
@@ -382,7 +466,7 @@ if __name__ == "__main__":
     fig = plt.figure("VectorField3D")
     ax = fig.add_subplot(111, projection="3d")
     ShowVectorField3D(
-        ax, cluster.cluster.points, vectors3D,
+        ax, lattice.cluster.points, vectors3D,
         markersize=8, title="VectorField3D"
     )
     ax.set_zlim(-0.5, 0.5)
