@@ -37,12 +37,12 @@ class JKGModelEDSolver(TriangularLattice):
         # directory relative CWD, the "tmp/" directory is created if necessary.
 
         directory = Path("tmp/")
-        name_template = "TRIANGLE_NUMX={0}_NUMY={1}_H{2}.npz"
+        name_template = "TRIANGLE_" + self.identity.upper() + "_H{0}.npz"
 
         # The slash operator helps create child paths
-        file_HJ = directory / name_template.format(self.numx, self.numy, "J")
-        file_HK = directory / name_template.format(self.numx, self.numy, "K")
-        file_HG = directory / name_template.format(self.numx, self.numy, "G")
+        file_HJ = directory / name_template.format("J")
+        file_HK = directory / name_template.format("K")
+        file_HG = directory / name_template.format("G")
 
         logger = logging.getLogger(__name__).getChild(
             ".".join([self.__class__.__name__, "TermMatrix"])
@@ -84,40 +84,48 @@ class JKGModelEDSolver(TriangularLattice):
         return HJ, HK, HG
 
     def GS(
-            self, gs_path="data/QuantumSpinModel/GS/",
-            v0=None, tol=0.0, **model_params,
+            self, es_path="data/QuantumSpinModel/ES/",
+            k=6, v0=None, tol=0.0, **model_params,
     ):
         """
-        Calculate the ground state energy and vector of the J-K-G model.
+        Find the smallest `kth` eigenvalues and eigenvectors of the J-K-G
+        model Hamiltonian.
 
-        This method saves the ground state data into a single file in
+        This method saves the eigenvalues and eigenvectors into a single file in
         compressed `.npz` format. The `.npz` files will be saved into the given
-        `gs_path` and the names of the `.npz` files have the following pattern:
-            "GS_numx={numx}_numy={numy}_alpha={alpha:.4f}_beta={beta:.4f}.npz"
+        `es_path` and the names of the `.npz` files have the following pattern:
+            "ES_num1={num1}_num2={num2}_which={which}_
+            alpha={alpha:.4f}_beta={beta:.4f}.npz"
         The variables in the "{}"s are replaced with the actual variables.
-        The lattice size `numx` and `numy` are stored with keyword name: `size`;
+        The lattice size `num1` and `num2` are stored with keyword name: `size`;
+        The lattice type `which` is stored with keyword name: `which`;
         The model parameters `alpha` and `beta` are stored with keyword
         name: `parameters`;
-        The ground state energy is stored with keyword name: `gse`;
-        The ground state vector is stored with keyword name: `ket`.
+        The eigenvalues are stored with keyword name: `values`;
+        The eigenvectors are stored with keyword name: `vectors`.
         For details about `.npz` format, see `numpy.savez_compressed`.
 
-        This method first check whether the ground state data for the given
-        `alpha` and `beta` exists in the given `gs_path`:
-            1. If exist, read ground state data into memory;
-            2. If the requested data does not exist in the given `gs_path`:
-                2.1 Calculate the ground state data;
-                2.2 Save the ground state data according to the rules just
+        This method first check whether the eigenstates data for the given
+        `alpha` and `beta` exists in the given `es_path`:
+            1. If exist, read eigenstates data into memory;
+            2. If the requested data does not exist in the given `es_path`:
+                2.1 Preform the calculation;
+                2.2 Save the eigenstates data according to the rules just
                 described.
-            3. Return the ground state data and the Hamiltonian matrix.
+            3. Return the eigenstates data and the Hamiltonian matrix.
 
         Parameters
         ----------
-        gs_path : str, optional
-            Where to save the ground state data. It can be an absolute path
+        es_path : str, optional
+            Where to save the eigenstates data. It can be an absolute path
             or a path relative to the current working directory(CWD). The
-            specified `gs_path` will be created if necessary.
-            Default: "data/QuantumSpinModel/GS/"(Relative to CWD).
+            specified `es_path` will be created if necessary.
+            Default: "data/QuantumSpinModel/ES/"(Relative to CWD).
+        k : int, optional
+            The number of eigenvalues and eigenvectors desired. `k` must be
+            smaller than the dimension of the Hilbert space. It is not
+            possible to compute all eigenvectors of a matrix.
+            Default: 6.
         v0 : np.ndarray, optional
             Starting vector for iteration. This parameter is passed to the
             `scipy.sparse.linalg.eigsh` as the `v0` parameter.
@@ -140,11 +148,12 @@ class JKGModelEDSolver(TriangularLattice):
 
         Returns
         -------
-        gse : float
-            The ground state energy of the model Hamiltonian at the given
-            model parameters.
-        ket : np.ndarray with shape (N, 1)
-            The corresponding ground state vector.
+        values : np.array
+            Array of k eigenvalues.
+        vectors : np.ndarray with shape (N, k)
+            An array representing the k eigenvectors.
+            The column `vectors[:, i]` is the eigenvector corresponding to
+            the eigenvalue `values[i]`.
         HM : csr_matrix
             The corresponding Hamiltonian matrix.
 
@@ -169,34 +178,32 @@ class JKGModelEDSolver(TriangularLattice):
         HM += G * HG
         del HG
 
-        gs_path = Path(gs_path)
-        gs_name_temp = "GS_numx={0}_numy={1}_alpha={2:.4f}_beta={3:.4f}.npz"
-        gs_full_name = gs_path / gs_name_temp.format(
-            self.numx, self.numy, alpha, beta
-        )
+        es_path = Path(es_path)
+        es_name_temp = "ES_" + self.identity + "_alpha={0:.4f}_beta={1:.4f}.npz"
+        es_full_name = es_path / es_name_temp.format(alpha, beta)
 
         logger = logging.getLogger(__name__).getChild(
             ".".join([self.__class__.__name__, "GS"])
         )
-        if gs_full_name.exists():
-            with np.load(gs_full_name) as ld:
-                gse = ld["gse"]
-                ket = ld["ket"]
-            logger.info("Load GS data from %s", gs_full_name)
+        if es_full_name.exists():
+            with np.load(es_full_name) as ld:
+                values = ld["values"]
+                vectors = ld["vectors"]
+            logger.info("Load ES data from %s", es_full_name)
         else:
             t0 = time()
-            gse, ket = eigsh(HM, k=1, which="SA", v0=v0, tol=tol)
+            values, vectors = eigsh(HM, k=k, which="SA", v0=v0, tol=tol)
             t1 = time()
-            msg = "GS for alpha=%.4f, beta=%.4f, dt=%.4fs"
+            msg = "ES for alpha=%.4f, beta=%.4f, dt=%.4fs"
             logger.info(msg, alpha, beta, t1 - t0)
 
-            gs_path.mkdir(exist_ok=True, parents=True)
+            es_path.mkdir(exist_ok=True, parents=True)
             np.savez_compressed(
-                gs_full_name, size=[self.numx, self.numy],
-                parameters=[alpha, beta], gse=gse, ket=ket,
+                es_full_name, size=[self.num1, self.num2], which=[self.which],
+                parameters=[alpha, beta], values=values, vectors=vectors,
             )
-            logger.info("Save GS data to %s", gs_full_name)
-        return gse[0], ket, HM
+            logger.info("Save ES data to %s", es_full_name)
+        return values, vectors, HM
 
     def excited_states(self, gs_ket):
         """
@@ -244,9 +251,7 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         # Prepare HJ, HK, HG first
         HJ, HK, HG = super()._TermMatrix()
 
-        file_HGP = Path("tmp/") / "TRIANGLE_NUMX={0}_NUMY={1}_HGP.npz".format(
-            self.numx, self.numy
-        )
+        file_HGP = Path("tmp/") / ("TRIANGLE_" + self.identity + "_HGP.npz")
 
         logger = logging.getLogger(__name__).getChild(
             ".".join([self.__class__.__name__, "TermMatrix"])
@@ -277,40 +282,48 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         return HJ, HK, HG, HGP
 
     def GS(
-            self, gs_path="data/QuantumSpinModel/GS/",
-            v0=None, tol=0.0, **model_params,
+            self, es_path="data/QuantumSpinModel/ES/",
+            k=6, v0=None, tol=0.0, **model_params,
     ):
         """
-        Calculate the ground state energy and vector of the J-K-G-GP model.
+        Find the smallest `kth` eigenvalues and eigenvectors of the J-K-G-GP
+        model Hamiltonian.
 
-        This method saves the ground state data into a single file in
+        This method saves the eigenvalues and eigenvectors into a single file in
         compressed `.npz` format. The `.npz` files will be saved into the given
-        `gs_path` and the names of the `.npz` files have the following pattern:
-            "GS_numx={numx}_numy={numy}_J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz"
+        `es_path` and the names of the `.npz` files have the following pattern:
+            "ES_num1={num1}_num2={num2}_which={which}_
+            J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz"
         The variables in the "{}"s are replaced with the actual variables.
-        The lattice size `numx` and `numy` are stored with keyword name: `size`;
+        The lattice size `num1` and `num2` are stored with keyword name: `size`;
+        The lattice type `which` is stored with keyword name: `which`;
         The model parameters `J`, `K`, `G` and `GP` are stored with keyword
         name: `parameters`;
-        The ground state energy is stored with keyword name: `gse`;
-        The ground state vector is stored with keyword name: `ket`.
+        The eigenvalues are stored with keyword name: `values`;
+        The eigenvectors are stored with keyword name: `vectors`.
         For details about `.npz` format, see `numpy.savez_compressed`.
 
-        This method first check whether the ground state data for the given
+        This method first check whether the eigenstates data for the given
         `J`, `K`, `G` and `GP` exists in the given `gs_path`:
-            1. If exist, read the ground state data into memory;
-            2. If the requested data does not exist in the given `gs_path`:
-                2.1 Calculate the ground state data;
-                2.2 Save the ground state data according to the rules just
+            1. If exist, read the eigenstates data into memory;
+            2. If the requested data does not exist in the given `es_path`:
+                2.1 Perform the calculation;
+                2.2 Save the eigenstates data according to the rules just
                 described.
-            3. Return the ground state data and Hamiltonian matrix.
+            3. Return the eigenstates data and Hamiltonian matrix.
 
         Parameters
         ----------
-        gs_path : str, optional
-            Where to save the ground state data. It can be an absolute path
+        es_path : str, optional
+            Where to save the eigenstates data. It can be an absolute path
             or a path relative to the current working directory(CWD). The
-            specified `gs_path` will be created if necessary.
-            Default: "data/QuantumSpinModel/GS/"(Relative to CWD).
+            specified `es_path` will be created if necessary.
+            Default: "data/QuantumSpinModel/ES/"(Relative to CWD).
+        k : int, optional
+            The number of eigenvalues and eigenvectors desired. `k` must be
+            smaller than the dimension of the Hilbert space. It is not
+            possible to compute all eigenvectors of a matrix.
+            Default: 6.
         v0 : np.ndarray, optional
             Starting vector for iteration. This parameter is passed to the
             `scipy.sparse.linalg.eigsh` as the `v0` parameter.
@@ -328,6 +341,22 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             K is the coefficient of the Kitaev term;
             G is the coefficient of the Gamma term;
             GP is the coefficient of the Gamma' term.
+
+         Returns
+        -------
+        values : np.array
+            Array of k eigenvalues.
+        vectors : np.ndarray with shape (N, k)
+            An array representing the k eigenvectors.
+            The column `vectors[:, i]` is the eigenvector corresponding to
+            the eigenvalue `values[i]`.
+        HM : csr_matrix
+            The corresponding Hamiltonian matrix.
+
+        See also
+        --------
+        numpy.savez_compressed
+        scipy.sparse.linalg.eigsh
         """
 
         actual_model_params = dict(self.DEFAULT_MODEL_PARAMETERS)
@@ -346,32 +375,32 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         HM += G * HG
         del HG
 
-        gs_path = Path(gs_path)
-        gs_full_name = gs_path / "GS_numx={numx}_numy={numy}_J={J:.4f}_" \
-                       "K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz".format(
-            numx=self.numx, numy=self.numy, J=J, K=K, G=G, GP=GP
+        es_path = Path(es_path)
+        es_file_name = "GS_" + self.identity
+        es_file_name += "_J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz".format(
+            J=J, K=K, G=G, GP=GP,
         )
+        es_full_name = es_path / es_file_name
 
         logger = logging.getLogger(__name__).getChild(
             ".".join([self.__class__.__name__, "GS"])
         )
-
-        if gs_full_name.exists():
-            with np.load(gs_full_name) as ld:
-                gse = ld["gse"]
-                ket = ld["ket"]
-            logger.info("Load GS data from %s", gs_full_name)
+        if es_full_name.exists():
+            with np.load(es_full_name) as ld:
+                values = ld["values"]
+                vectors = ld["vectors"]
+            logger.info("Load ES data from %s", es_full_name)
         else:
             t0 = time()
-            gse, ket = eigsh(HM, k=1, which="SA", v0=v0, tol=tol)
+            values, vectors = eigsh(HM, k=k, which="SA", v0=v0, tol=tol)
             t1 = time()
-            msg = "GS for J=%.4f, K=%.4f, G=%.4f, GP=%.4f, dt=%.4fs"
+            msg = "ES for J=%.4f, K=%.4f, G=%.4f, GP=%.4f, dt=%.4fs"
             logger.info(msg, J, K, G, GP, t1 - t0)
 
-            gs_path.mkdir(exist_ok=True, parents=True)
+            es_path.mkdir(exist_ok=True, parents=True)
             np.savez_compressed(
-                gs_full_name, size=[self.numx, self.numy],
-                parameters=[J, K, G, GP], gse=gse, ket=ket,
+                es_full_name, size=[self.num1, self.num2], which=[self.which],
+                parameters=[J, K, G, GP], values=values, vectors=vectors,
             )
-            logger.info("Save GS data to %s", gs_full_name)
-        return gse[0], ket, HM
+            logger.info("Save ES data to %s", es_full_name)
+        return values, vectors, HM
