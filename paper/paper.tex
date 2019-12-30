@@ -68,11 +68,12 @@ where $\alpha \in [0, \pi]$ and $\beta \in [0, 2\pi]$ to cover the global phase 
 \textcolor{red}{A introduction to classical Monte Carlo. Left blank currently.}
 
 \subsection{Exact Diagonalization}
-We perform a Lanczos ED calculation of the GS energy of the Hamiltonian \eqref{eq:Hamiltonian} on a 24-site cluster with periodic boundary conditions. To detect quantum phase transitions, the second derivatives of the ground-state energy, $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ were computed and looked for singular features that indicate changes in the groun-state characteristics. Phases containing exactly solvable or well-understood points, such as the FM, 120$^\circ$ N\'{e}el, stripe and Dual N\'{e}el can be readily identified. The remaining phases were identified mainly by examining the static structure factor
+We perform a Lanczos ED calculation of the GS energy of the Hamiltonian \eqref{eq:Hamiltonian} on several $4 \times 6$ clusters with periodic boundary conditions (PBC). To detect quantum phase transitions, the second derivatives of the ground-state energy, $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ were computed and looked for singular features that indicate changes in the groun-state characteristics. Phases containing exactly solvable or well-understood points, such as the FM, 120$^\circ$ N\'{e}el, stripe and Dual N\'{e}el can be readily identified. The remaining phases were identified mainly by examining the static magnetic structure factor (SMSF)
 \begin{equation}
-    S(\mathbf{Q}) = \frac{1}{N} \sum_{ij}e^{i\mathbf{Q}\cdot(\mathbf{r}_i - \mathbf{r}_j)} \langle \mathbf{S}_i \cdot \mathbf{S}_j \rangle
+    S(\mathbf{Q}) = \frac{1}{N} \sum_{ij}e^{i\mathbf{Q}\cdot(\mathbf{R}_i - \mathbf{R}_j)} \langle \mathbf{S}_i \cdot \mathbf{S}_j \rangle
     \label{eq:StaticStructureFactor}
 \end{equation}
+where N is the total number of spins, $\mathbf{R}_i$ is the position of site $i$ and $\langle \mathbf{S}_i \cdot \mathbf{S}_j \rangle$ is the average over the ground state.
 
 To extract the moment direction of a magnetic ordered phase from a cluster ground state, we employ the method developed by Ji\v{r}\'{i} Chaloupka \emph{et  al} \cite{PhysRevB.94.064435}. The basic idea of this method is to measure the probabilities of the exact cluster ground state $|GS\rangle$ on cluster spin-coherent states with varying moment directions. The cluster spin-coherent state is a direct product of spin-1/2 coherent states on each site $i$
 \begin{equation}
@@ -87,7 +88,7 @@ where the spin-1/2 coherent state
 is fully polaried along the $(\theta, \phi)$ direction. Here the cubic axes are used (see Fig. \ref{fig:ModelDefinition}(c)), $\theta$ and $\phi$ are the conventional spherical angles, and $S^z |\uparrow \rangle = \frac{1}{2}|\uparrow \rangle$. By calculating the overlap with the exact cluster GS from ED, and maximizing the probability $P = |\langle \Psi | GS \rangle|^2$ with respect to $\theta$s and $\phi$s, we can then identify the classical pattern that best fits the exact GS.
 
 \section{Classical Analysis}
-To understand the effects of inculding this off-diagonal $\Gamma$ term, we first study the classical $J-K-\Gamma$ model where the spin operators are viewed as unit-vectors in three dimension. On our proceeding, we note that the global phase diagram has been obtained previously by using a combination of Luttinger-Tsiza (LT) and classical Monte Carlo simulations \cite{PhysRevB.92.165108}. Six different magnetic orderings: ferromagnet (FM), stripe, 120$^\circ$ N\'{e}el order, nematic, $\mathbb{Z}_2$ and dual-$\mathbb{Z}_2$ vortex crystal phases were found, see Fig. 2 in Ref \onlinecite{PhysRevB.92.165108}. Our classical Monte Carlo study give qualitatively the same phase diagram.
+To understand the effects of inculding the off-diagonal $\Gamma$ term, we first study the classical $J-K-\Gamma$ model where the spin operators are viewed as unit-vectors in three dimension. On our proceeding, we note that the global phase diagram has been obtained previously by using a combination of Luttinger-Tsiza (LT) and classical Monte Carlo simulations \cite{PhysRevB.92.165108}. Six different magnetic orderings: ferromagnet (FM), stripe, 120$^\circ$ N\'{e}el order, nematic, $\mathbb{Z}_2$ and dual-$\mathbb{Z}_2$ vortex crystal phases were found, see Fig. 2 in Ref \onlinecite{PhysRevB.92.165108}. Our classical Monte Carlo study give qualitatively the same phase diagram.
 
 \subsection{Moment direction of the classcial FM order}
 For the classical FM order, the energy of the $J-K-\Gamma$ model per lattice site is given by
@@ -95,11 +96,11 @@ For the classical FM order, the energy of the $J-K-\Gamma$ model per lattice sit
     E_{FM}^{c} = (3J + K) + 2\Gamma(S^xS^y + S^yS^z + S^zS^x)
     \label{eq:EcFM}
 \end{equation}
-On this level, the moment direction of the classical FM state is determined solely by $\Gamma$ and the problem becomes finding the minimum and maximum of the multi-variable function $f(S^x, S^y, S^z) = S^xS^y + S^yS^z + S^zS^x$ with the constraint $|\mathbf{S}| = 1$. $f(S^x, S^y, S^z)$ takes maximum value $f_{max}=1$ at $S^x=S^y=S^z=\pm 1/\sqrt{3}$ and minimum value $f_{min}=-0.5$ when the conditions $S^x + S^y + S^z = 0$ and $|\mathbf{S}| = 1$ are fulfilled. That is to say, for $\Gamma > 0$ the moment of the classcial FM state prefers to lie in the plane that is perpendicular to the $[111]$ direction and when $\Gamma$ is negative, the moment would along the $[111]$ or $[\bar{1}\bar{1}\bar{1}]$ direction.
+On this level, the moment direction of the classical FM state is determined solely by $\Gamma$ and the problem becomes finding the global minimum and maximum of the multi-variable function $f(S^x, S^y, S^z) = S^xS^y + S^yS^z + S^zS^x$ with the constraint $|\mathbf{S}| = 1$. $f(S^x, S^y, S^z)$ takes maximum value $f_{max}=1$ at $S^x=S^y=S^z=\pm 1/\sqrt{3}$ and minimum value $f_{min}=-0.5$ when the conditions $S^x + S^y + S^z = 0$ and $|\mathbf{S}| = 1$ are fulfilled. That is to say, for $\Gamma > 0$ the moment of the classcial FM state prefers to lie in the plane that is perpendicular to the $[111]$ direction and when $\Gamma$ is negative, the moment would along the $[111]$ or $[\bar{1}\bar{1}\bar{1}]$ direction.
 
 \subsection{Moment direction of the classcial stripe order}
 
-In the case of stripe order, there are three degenerate spin configurations as illustrated in Fig. \ref{fig:PhaseDiagram}(b)-(d). For the spin configuration shown in Fig. \ref{fig:PhaseDiagram}(b), the energy of the $J-K-\Gamma$ model Hamiltonian is
+In the case of stripe order, there are three degenerate spin configurations as illustrated in Fig. \ref{fig:PhaseDiagram}(b)-(d). For the spin configuration shown in Fig. \ref{fig:PhaseDiagram}(b), the energy of the model Hamiltonian \eqref{eq:Hamiltonian} is
 \begin{IEEEeqnarray}{rCl}
     E_{StripeX}^{c} & = & -(J + K) + 2KS^xS^x \nonumber \\
         && + 2\Gamma(S^yS^z - S^xS^y - S^zS^x)
@@ -121,13 +122,20 @@ For $\Gamma=0, K>0$, the stripe order shown in Fig. \ref{fig:PhaseDiagram}(b) pr
 \begin{figure*}
     \centering
     \includegraphics[width=0.96\textwidth]{Fig2.pdf}
-    \caption{(Color online) (a) Global phase diagram of the triangular lattice J-K-$\Gamma$ model. The angle $\alpha$ and $\beta$ denote the radial and azimuthal angles, respectively. There are in total ten phases including three different FM phases denoted as FM-A, FM-B and FM-C, four different stripe phases designated as Stripe-A, Stripe-B, Stripe-C and Stripe-D, 120$^\circ$ N\'{e}el, Dual N\'{e}el and a possible quantum spin liquid phase. (b) Illustration of the FM order. All spins along the same direction. (c) Illustation of the stripe order of the $x$ type. That is the spins along the x-bond direction are parallel and adjacent chains are antiparallel. There are also stripe order of the $y$ or $z$ type, which are degenerate with the $x$ type stripe order. (d) Illustration of the 120$^\circ$ N\'{e}el order. All spins are coplanar and the angles between nearest-neighbor spins are 120$^\circ$. (e) Illustration of the Dual N\'{e}el order. The magnetic unit cell include 12 lattice sites as marked by the green dashed parallelogram.}
+    \caption{(Color online) (a) Global phase diagram of the triangular lattice J-K-$\Gamma$ model. The angle $\alpha$ and $\beta$ denote the radial and azimuthal angles, respectively. There are in total ten phases including three different FM phases denoted as FM-A, FM-B and FM-C, four different stripe phases designated as Stripe-A, Stripe-B, Stripe-C and Stripe-D, 120$^\circ$ N\'{e}el, Dual N\'{e}el and a possible quantum spin liquid phase. The three FM phases different from each other in the direction of the ordered moment, and also the four stripe phases are distinguished by their moment directions, see main text for details. (b)-(d) Illustation of the three degenerate spin configurations for all stripe orders. (e) Illustration of the 120$^\circ$ N\'{e}el order. All spins are coplanar and the angles between nearest-neighbor spins are 120$^\circ$. (f) Illustration of the Dual N\'{e}el order. The magnetic unit cell include 12 lattice sites as marked by the green dashed parallelogram.}
      \label{fig:PhaseDiagram}
 \end{figure*}
 
+In this section, we turn to study the quantum phases in the $J-K-\Gamma$ model Hamiltonian. We consider a $4 \times 6$ cluster with PBC that has been used previously to study the HK model on triangular lattice \cite{KaiLi2015}. The resulting phase diagrams for $\Gamma \geq 0$ and $\Gamma \leq 0$ are presented in Fig. \ref{fig:PhaseDiagram}(a). The phase boundaries are obtained from the location of singular features in $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$. The quantum phase diagrams is closely resemble to the classical results in Ref. \onlinecite{PhysRevB.92.165108} except for the small green area near $\Gamma=1$ which does not appear in the classical phase diagram.
+
+In the HK limit, by virtue of the existence of the so-called four-sublattice-transformation (FST), two more magnetic ordered phases were identified in addition to the well-understood FM and 120$^\circ$ N\'{e}el phases. Under the transformation, we obtain a collinear stripe order (see Fig. \ref{fig:PhaseDiagram}(b)-(d)) from the original FM order and a noncollinear spiral order (dual N\'{e}el) from the 120$^\circ$ N\'{e}el order (see Fig. \ref{fig:PhaseDiagram}(e) and (f)). The transformation is no longer valid when $\Gamma$ is included, but the phases surrounding these spcial points can still be identified with each respective limit.
+
+To identify the remaining phases and providing more information of these phase, we calculate the SMSF for some representative model paramters, as shown in Fig. \ref{fig:StructureFactors}. For pure $\Gamma$ model, see Fig. \ref{fig:StructureFactors}(a) and (b), the peak of the SMSF locates at the center of first Brillouin Zone (BZ) which is a typical characteristic of the FM order.
+Take into account of the classical results, we propose the three blue areas with different shadings to be FM ordered phases and they different from each other in the direction of the ordered moment which will be discussed in the next section. In Fig. \ref{fig:StructureFactors}(c)-(e), the SMSF peaked at the M-points indicating that the GS of the $J-K-\Gamma$ model around these model parameters could be stripe ordered.
+
 \begin{figure}
     \includegraphics[width=0.45\textwidth]{Fig3.pdf}
-    \caption{(Color online) Static structure factors for different model paramters.}
+    \caption{(Color online) SMSF for different model paramters. The green dashed lines marks the first BZ corresponding to the triangular lattice.}
      \label{fig:StructureFactors}
 \end{figure}
 
@@ -137,10 +145,10 @@ For $\Gamma=0, K>0$, the stripe order shown in Fig. \ref{fig:PhaseDiagram}(b) pr
      \label{fig:Proabilities}
 \end{figure}
 
-\textcolor{red}{Global phase diagram of the $J-K-\Gamma$ model. Left blank currently.}
+\textcolor{red}{$\cdots \cdots$}
 
-\section{Discussion}
-\textcolor{red}{A discussion of our results. Left blank currently.}
+\section{Summary}
+\textcolor{red}{Summary of our work. Left blank currently.}
 
 \section{Acknowledgements}
 \textcolor{red}{Acknowledgements. Left blank currently.}
