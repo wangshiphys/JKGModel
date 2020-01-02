@@ -70,7 +70,7 @@ The full anisotropic Hamiltonian \eqref{eq:Hamiltonian} is no longer exactly sol
 where $\alpha \in [0, \pi]$ and $\beta \in [0, 2\pi]$ to cover the global phase diagram.
 
 \subsection{Classical Monte Carlo}
-\textcolor{red}{A introduction to classical Monte Carlo. Left blank currently.}
+\textcolor{red}{A introduction to classical Monte Carlo.  To be accomplished $\cdots \cdots$}
 
 \subsection{Exact Diagonalization}
 We perform a Lanczos ED calculation of the GS energy of the Hamiltonian \eqref{eq:Hamiltonian} on several $4 \times 6$ clusters with periodic boundary conditions (PBC). To detect quantum phase transitions, the second derivatives of the ground-state energy, $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ were computed and looked for singular features that indicate changes in the ground-state characteristics. Phases containing exactly solvable or well-understood points, such as the FM, 120$^\circ$ N\'{e}el, stripe and Dual N\'{e}el can be readily identified. The remaining phases were identified mainly by examining the static magnetic structure factor (SMSF)
@@ -143,21 +143,42 @@ In the HK limit, by virtue of the existence of the so-called four-sublattice-tra
 When the off-diagonal $\Gamma$ term is included, the transforamtion is no longer valid. To identify the remaining phases and providing more information of these phases, we calculate the SMSF for some representative model paramters, as shown in Fig. \ref{fig:StructureFactors}. For pure $\Gamma$ model, see Fig. \ref{fig:StructureFactors}(a) and (b), the peak of the SMSF locates at the center of first Brillouin Zone (BZ) which is a typical characteristic of the FM order. Take into account of the classical results, we propose the three blue areas with different shadings in the global phase diagram (see Fig. \ref{fig:PhaseDiagram}) to be FM ordered phases (i.e., \emph{FM-A}, \emph{FM-B}, \emph{FM-C}) and they different from each other in the direction of the ordered moment which will be discussed in the next section. In Fig. \ref{fig:StructureFactors}(c)-(e), the SMSF peaked at the M-points indicating that the stripe ordered GS of the classical model persist in the quantum limit. It is worth to note that even the GS of the classical model near the AF Kitaev point was identified to be nematic ordered which is energetically degenerate with the stripe state, our ED results favor the idea that quantum flucations would select a stripe state. The four stripe phases designated as \emph{Stripe-A}, \emph{-B}, \emph{-C}, \emph{-D} in Fig. \ref{fig:PhaseDiagram}(a) different from each other only in the moment direction. Apart from these single-$\mathbf{Q}$ phases, we also identify a multi-$\mathbf{Q}$ phase, see the green area in Fig. \ref{fig:PhaseDiagram}(a). For $J$, $K$, $\Gamma$ in this area, the SMSF has high intensities at both the center and M-points of the first BZ and Fig. \ref{fig:StructureFactors}(f) is a typical SMSF profile of this phase. \textcolor{red}{$\cdots \cdots$}
 
 \section{Moment Direction-Exact Diagonalization Results}
-\textcolor{red}{Exact diagonalization results of the moment direction for FM and stripe phases. Left blank currently.}
-
 \begin{figure}
     \includegraphics[width=0.45\textwidth]{Fig4.pdf}
     \caption{(Color online) Map of the probabilities of the cluster spin-coherent state given by Eq.\eqref{eq:ClusterCoherentState} in varies exact cluster GS. The radial and polar coordinate gives the angles $\theta$ and $\phi$, which are spherical angles with respect to the reference frame shown in Fig. \ref{fig:ModelDefinition}(c). The green dashed lines and solid circles mark the ordered moment direction determined for the classical states, see main text for details. (a)-(b) Probability maps for the FM states in the \emph{FM-A} and \emph{FM-C} phase, respectively. (c)-{f} Proability maps for the stripe states in the \emph{Stripe-A}, \emph{Stripe-B}, \emph{Stripe-C}, \emph{Stripe-D}, resepctively.}
      \label{fig:Proabilities}
 \end{figure}
 
+Having map out the global phase diagram of the $J-K-\Gamma$ model, we now move to the moment direction of these FM and stripe phases which provides key characteristic to distinguish them. Since the cluster spin-coherent state is captured by only a single pair ($\theta$, $\phi$) for collinear phases (in our case, these are FM and stripe), it is easy to determine the direction of the ordered moment by inspecting the probability map $P(\theta, \phi) = | \langle \Psi (\theta, \phi) | GS \rangle |^2.$
 
+\subsection{Moment direction of the FM phases}
+For pure Heisenberg model, the FM state is spin rotational invariant and the ordered moment can point any direction. The easy axis Kitaev interaction breaks the accidental spin rotational symmetry, pinning the orderings to the axis direction(i.e., \textit{x}, \textit{y}, \textit{z} direction). However, when the off-diagonal $\Gamma$ term is introduced, which would compete with Kitaev interaction, the moment orientation will deviate from the axis direction. To extract the moment direction of the \emph{FM-A} and \emph{FM-C} phases, we construct the following cluster spin-coherent state
+\begin{equation}
+    |\Psi(\theta, \phi) \rangle = \bigotimes_{i=1}^N|\theta,\phi \rangle
+\end{equation}
+and calculate the probabilities $P(\theta, \phi)$ with varying $\theta$ and $\phi$. The resulting probability maps are shown in Fig. \ref{fig:Proabilities}(a) and \ref{fig:Proabilities}(b).
+
+\textcolor{red}{Moment direction of the FM phases. To be accomplished $\cdots \cdots$}
+
+\subsection{Moment direction of the stripe phases}
+\textcolor{red}{Moment direction of the stripe phases. To be accomplished $\cdots \cdots$}
 
 \section{Summary}
-\textcolor{red}{Summary of our work. Left blank currently.}
+\textcolor{red}{Summary of our work. To be accomplished $\cdots \cdots$}
 
-\section{Acknowledgements}
-\textcolor{red}{Acknowledgements. Left blank currently.}
+\begin{acknowledgments}
+    \textcolor{red}{Acknowledgements.  To be accomplished $\cdots \cdots$}
+\end{acknowledgments}
+
+
+% The following are the Appendixes of this article
+\appendix
+
+\section{Analysis of the classical energy and moment direction}
+
+\textcolor{red}{Analysis of the classical energy and moment direction. To be accomplished $\cdots \cdots$}
+
+\newpage
 
 \bibliography{ref}
 
