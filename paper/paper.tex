@@ -1,7 +1,6 @@
-\documentclass[aps,prb,reprint,groupedaddress,showpacs,amsfonts,amsmath,amssymb,superscriptaddress]{revtex4-1}
+\documentclass[aps,prb,reprint,amsfonts,amsmath,amssymb,showpacs,groupedaddress,superscriptaddress]{revtex4-1}
 \usepackage{IEEEtrantools}
 \usepackage{graphicx}
-% \usepackage{subfigure}
 \usepackage{bm}
 \usepackage{color}
 % \usepackage{changes}
@@ -81,9 +80,9 @@ We perform a Lanczos ED calculation of the GS energy of the Hamiltonian \eqref{e
 \end{equation}
 where N is the total number of spins, $\mathbf{R}_i$ is the position of site $i$ and $\langle \mathbf{S}_i \cdot \mathbf{S}_j \rangle$ is the average over the ground state.
 
-To extract the moment direction of a magnetic ordered phase from a cluster ground state, we employ the method developed by Ji\v{r}\'{i} Chaloupka \emph{et  al} \cite{PhysRevB.94.064435}. The basic idea of this method is to measure the probabilities of the exact cluster ground state $|GS\rangle$ on cluster spin-coherent states with varying moment directions. The cluster spin-coherent state is a direct product of spin-1/2 coherent states on each site $i$
+To extract the moment direction of a magnetic ordered phase from a cluster ground state, we employ the method developed by Ji\v{r}\'{i} Chaloupka \emph{et  al} \cite{PhysRevB.94.064435}. The basic idea of this method is to measure the probabilities of the exact cluster GS on cluster spin-coherent states with varying moment directions. The cluster spin-coherent state is a direct product of spin-1/2 coherent states on each site $i$
 \begin{equation}
-    |\Psi\rangle = \prod_{i=1}^N|\theta_i,\phi_i\rangle
+    |\Psi\rangle = \bigotimes_{i=1}^N|\theta_i,\phi_i\rangle
     \label{eq:ClusterCoherentState}
 \end{equation}
 where the spin-1/2 coherent state
@@ -91,7 +90,7 @@ where the spin-1/2 coherent state
     |\theta, \phi \rangle = \mathcal{R}_z(\phi) \mathcal{R}_y(\theta) |\uparrow \rangle = e^{-i\phi S^z} e^{-i\theta S^y} |\uparrow\rangle
     \label{eq:Spin-1/2CoherentState}
 \end{equation}
-is fully polaried along the $(\theta, \phi)$ direction. Here the cubic axes are used (see Fig. \ref{fig:ModelDefinition}(c)), $\theta$ and $\phi$ are the conventional spherical angles, and $S^z |\uparrow \rangle = \frac{1}{2}|\uparrow \rangle$. By calculating the overlap with the exact cluster GS from ED, and maximizing the probability $P = |\langle \Psi | GS \rangle|^2$ with respect to $\theta$s and $\phi$s, we can then identify the classical pattern that best fits the exact GS.
+is fully polaried along the $(\theta, \phi)$ direction. Here the cubic axes are used (see Fig. \ref{fig:ModelDefinition}(c)), $\theta$ and $\phi$ are the conventional spherical angles, and $S^z |\uparrow \rangle = \frac{1}{2}|\uparrow \rangle$. By calculating the overlap with the exact cluster GS, and maximizing the probability $P = |\langle \Psi | GS \rangle|^2$ with respect to $\theta$s and $\phi$s, we can then identify the classical pattern that best fits the exact GS.
 
 \section{Classical Analysis}
 To understand the effects of inculding the off-diagonal $\Gamma$ term, we first study the classical $J-K-\Gamma$ model where the spin operators are viewed as unit-vectors in three dimension. On our proceeding, we note that the global phase diagram has been obtained previously by using a combination of Luttinger-Tsiza (LT) and classical Monte Carlo simulations \cite{PhysRevB.92.165108}. Six different magnetic orderings: ferromagnet (FM), stripe, 120$^\circ$ N\'{e}el order, nematic, $\mathbb{Z}_2$ and dual-$\mathbb{Z}_2$ vortex crystal phases were found, see Fig. 2 in Ref \onlinecite{PhysRevB.92.165108}. Our classical Monte Carlo study give qualitatively the same phase diagram.
@@ -113,7 +112,7 @@ In the case of stripe order, there are three degenerate spin configurations as i
         && \negmedspace {} + 2 \Gamma (S^y S^z - S^z S^x - S^x S^y)
     \label{eq:EcStripeX}
 \end{IEEEeqnarray}
-and the energy for spin configuration in Fig. \ref{fig:PhaseDiagram}(c) and \ref{fig:PhaseDiagram}(d) can be obtained by a cyclic permutation $x \rightarrow y \rightarrow z \rightarrow x$. The moment direction of the classical stripe order is determined by the anisotropy parameters $K$ and $\Gamma$. In general, $E_{StripeX}^{c}$ has three extreme points where the first derivatives equal zero
+and the energy for spin configuration in Fig. \ref{fig:PhaseDiagram}(c) and \ref{fig:PhaseDiagram}(d) can be obtained by a cyclic permutation $x \rightarrow y \rightarrow z \rightarrow x$. The moment direction of the classical stripe order is determined by the anisotropy parameters $K$ and $\Gamma$. In general ($J,K,\Gamma \neq 0$), $E_{StripeX}^{c}$ has three extreme points where the first derivatives equal zero
 \begin{align}
     &\mathbf{S}_0: \quad S_{0}^{y}=-S_{0}^{z} = \pm1/\sqrt{2}, \quad S_{0}^{x} = 0 \label{eq:S0} \\
     &\mathbf{S}_1: \quad S_{1}^{y}=S_{1}^{z} = f_{1}(K, \Gamma), \quad S_{1}^{x} = g_{1}(K, \Gamma) S_{1}^{y} \label{eq:S1} \\
@@ -121,9 +120,7 @@ and the energy for spin configuration in Fig. \ref{fig:PhaseDiagram}(c) and \ref
 \end{align}
 see Appendix B for their explicit expressions.
 
-For $\Gamma=0, K>0$, it can be clearly seen from Eq\eqref{eq:EcStripeX} that the stripe order shown in Fig. \ref{fig:PhaseDiagram}(b) prefers to lie in the $yz$ plane. An infinitesimal positive $\Gamma$ would fix the ordered moment to the $\mathbf{S}_0$ direction whereas negative $\Gamma$ drives it to the $\mathbf{S}_1$ direction. When $\Gamma=0, K<0$, the moment would along the $x$ axis to have lowest energy, both positive and negative $\Gamma$ make it deviate from the $x$ axis to point the $\mathbf{S}_1$ direction. All these stripe orders with the specific moment direction were found in our Monte Carlo simulation.
-However, in the HK limit ($\Gamma=0$), apart from the stripe orders lie in the axis plane, nematic orders which have the same energy were also found for a range of $J$ and $K$. Both positive and negative $\Gamma$ lift the degeneracy and drive the moment direction of stripe order to specific direction.
-\textcolor{red}{$\cdots \cdots$}
+For $\Gamma=0, K>0$, it can be clearly seen from Eq\eqref{eq:EcStripeX} that the stripe order shown in Fig. \ref{fig:PhaseDiagram}(b) prefers to lie in the $yz$ plane. An infinitesimal positive $\Gamma$ would fix the ordered moment to the $\mathbf{S}_0$ direction whereas negative $\Gamma$ drives it to the $\mathbf{S}_1$ direction. When $\Gamma=0, K<0$, the moment would along the $x$-axis to have lowest energy, both positive and negative $\Gamma$ make it deviate from the $x$-axis and point to the $\mathbf{S}_1$ direction. All these stripe orders with the specific moment direction were found in the corresponding parameter space by our Monte Carlo simulation. However, in the HK limit ($\Gamma=0$), apart from the stripe orders lie in the axis plane, nematic orders which have the same energy were also found in the range $0 \leq |J| \ll K$.
 
 \section{Global Phase Diagram}
 \begin{figure*}
@@ -133,20 +130,18 @@ However, in the HK limit ($\Gamma=0$), apart from the stripe orders lie in the a
      \label{fig:PhaseDiagram}
 \end{figure*}
 
-In this section, we turn to study the quantum phases in the $J-K-\Gamma$ model Hamiltonian. We consider a $4 \times 6$ cluster with PBC that has been used previously to study the HK model on triangular lattice \cite{KaiLi2015}. The resulting phase diagrams for $\Gamma \geq 0$ and $\Gamma \leq 0$ are presented in Fig. \ref{fig:PhaseDiagram}(a). The phase boundaries are obtained from the location of singular features in $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$. The quantum phase diagrams is closely resemble to the classical results in Ref. \onlinecite{PhysRevB.92.165108} except for the small green area near $\Gamma=1$ which does not appear in the classical phase diagram.
+In this section, we turn to study the quantum phases in the $J-K-\Gamma$ model Hamiltonian. We consider a $4 \times 6$ cluster with PBC that has been used previously to study the HK model on triangular lattice \cite{KaiLi2015}. The resulting phase diagrams for $\Gamma \geq 0$ and $\Gamma \leq 0$ are presented in Fig. \ref{fig:PhaseDiagram}(a). The phase boundaries are obtained from the location of singular features in $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$. The quantum phase diagram is closely resemble to the classical result in Ref. \onlinecite{PhysRevB.92.165108} except for the small green area near $\Gamma=1$ which does not appear in the classical phase diagram.
 
-In the HK limit, by virtue of the existence of the so-called four-sublattice-transformation (FST), two more magnetic ordered phases were identified in addition to the well-understood FM and 120$^\circ$ N\'{e}el phases. Under the transformation, we obtain a collinear stripe order (see Fig. \ref{fig:PhaseDiagram}(b)-(d)) from the original FM order and a noncollinear spiral order (dual N\'{e}el) from the 120$^\circ$ N\'{e}el order (see Fig. \ref{fig:PhaseDiagram}(e) and (f)). The transformation is no longer valid when $\Gamma$ is included, but the phases surrounding these spcial points can still be identified with each respective limit.
+In the HK limit, by virtue of the existence of the so-called four-sublattice-transformation (FST) \cite{PhysRevB.89.014414}, two more magnetic ordered phases were identified in addition to the well-understood FM ($J=-1$)and 120$^\circ$ N\'{e}el ($J=1$) phases. Under the transformation, we obtain a collinear stripe order (see Fig. \ref{fig:PhaseDiagram}(b)-(d)) from the original FM order and a noncollinear spiral order (dual N\'{e}el) from the 120$^\circ$ N\'{e}el order (see Fig. \ref{fig:PhaseDiagram}(e) and (f)). The phase near the AF Kitaev point (i.e., $K=1$) has been proposed to be a chiral SL at the mean field level \cite{KaiLi2015} or a nematic phase in the quantum limit from DMRG calculation \cite{PhysRevB.91.155135}, however, a more recent study suggests that a stripe state is more likely to be the GS \cite{PhysRevX.9.021017}.
 
-To identify the remaining phases and providing more information of these phases, we calculate the SMSF for some representative model paramters, as shown in Fig. \ref{fig:StructureFactors}. For pure $\Gamma$ model, see Fig. \ref{fig:StructureFactors}(a) and (b), the peak of the SMSF locates at the center of first Brillouin Zone (BZ) which is a typical characteristic of the FM order.
-Take into account of the classical results, we propose the three blue areas with different shadings to be FM ordered phases and they different from each other in the direction of the ordered moment which will be discussed in the next section. In Fig. \ref{fig:StructureFactors}(c)-(e), the SMSF peaked at the M-points indicating that the GS of the $J-K-\Gamma$ model around these model parameters could be stripe ordered.
+When the off-diagonal $\Gamma$ term is included, the transforamtion is no longer valid. To identify the remaining phases and providing more information of these phases, we calculate the SMSF for some representative model paramters, as shown in Fig. \ref{fig:StructureFactors}. For pure $\Gamma$ model, see Fig. \ref{fig:StructureFactors}(a) and (b), the peak of the SMSF locates at the center of first Brillouin Zone (BZ) which is a typical characteristic of the FM order. Take into account of the classical results, we propose the three blue areas with different shadings in the global phase diagram (see Fig. \ref{fig:PhaseDiagram}) to be FM ordered phases (i.e., FM-A, FM-B, FM-C) and they different from each other in the direction of the ordered moment which will be discussed in the next section.
+In Fig. \ref{fig:StructureFactors}(c)-(e), the SMSF peaked at the M-points indicating that the GS of the $J-K-\Gamma$ model around these model parameters could be stripe ordered. For the model parameters shown in Fig. \ref{fig:StructureFactors}(d) and (e), the GS of the classical model is stripe ordered, and our ED results suggest the stripe state persist in the quantum limit.
 
 \begin{figure}
     \includegraphics[width=0.45\textwidth]{Fig3.pdf}
     \caption{(Color online) SMSF for different model paramters. The green dashed lines marks the first BZ corresponding to the triangular lattice.}
      \label{fig:StructureFactors}
 \end{figure}
-
-
 
 \textcolor{red}{$\cdots \cdots$}
 
