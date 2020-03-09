@@ -15,7 +15,7 @@ from pathlib import Path
 from time import time
 
 import numpy as np
-from HamiltonianPy import SpinInteraction, SpinOperator
+from HamiltonianPy import SpinInteraction, SpinOperator, MultiKrylov
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
 
@@ -205,7 +205,8 @@ class JKGModelEDSolver(TriangularLattice):
             logger.info("Save ES data to %s", es_full_name)
         return values, vectors, HM
 
-    def excited_states(self, gs_ket):
+
+    def excited_states(self, gs_ket, which="Sm"):
         """
         Calculate excited states.
 
@@ -213,6 +214,12 @@ class JKGModelEDSolver(TriangularLattice):
         ----------
         gs_ket : np.ndarray with shape (N, 1)
             The ground state vector.
+        which : ["Sp" | "Sm" | "Sz"], str, optional
+            The type of operators to be operated on the ground state.
+            "Sp": Operate all $S_i^+$ operators on the ground state;
+            "Sm": Operate all $S_i^-$ operators on the ground state;
+            "Sz": Operate all $S_i^z$ operators on the ground state.
+            Default: "Sm".
 
         Returns
         -------
@@ -222,17 +229,72 @@ class JKGModelEDSolver(TriangularLattice):
             corresponding vectors of excited states.
         """
 
+        if which == "Sp":
+            otype = "p"
+        elif which == "Sm":
+            otype = "m"
+        elif which == "Sz":
+            otype = "z"
+        else:
+            raise ValueError("Invalid `which`: {0}".format(which))
+
+        excited_states = dict()
         cluster = self.cluster
         total_spin = self.site_num
-        excited_states = {}
+        mfunc = SpinOperator.matrix_function
         for site in cluster.points:
             site_index = cluster.getIndex(site=site, fold=False)
-            for otype in ("p", "m"):
-                spin_operator = SpinOperator(otype=otype, site=site)
-                excited_states[spin_operator] = SpinOperator.matrix_function(
-                    (site_index, otype), total_spin=total_spin
-                ).dot(gs_ket)
+            spin_operator = SpinOperator(otype=otype, site=site)
+            excited_states[spin_operator] = mfunc(
+                (site_index, otype), total_spin=total_spin
+            ).dot(gs_ket)
         return excited_states
+
+    def LanczosProjection(self, HM, gs_ket, which="Sm"):
+        """
+        Perform Lanczos projection of the Hamiltonian matrix and excited states.
+
+        Parameters
+        ----------
+        HM : csr_matrix with shape (N, N)
+            The Hamiltonian matrix.
+        gs_ket : np.ndarray with shape (N, 1)
+            The ground state vector.
+        which : ["all", "Sp" | "Sm" | "Sz"], str, optional
+            The type of operators to be operated on the ground state.
+            "Sp": Operate all $S_i^+$ operators on the ground state;
+            "Sm": Operate all $S_i^-$ operators on the ground state;
+            "Sz": Operate all $S_i^z$ operators on the ground state;
+            "all": Operate all $S_i^+$, $S_i^-$, $S_i^z$ operators on the
+            ground state.
+            Default: "Sm".
+
+        Returns
+        -------
+        projected_matrices : dict
+            The representations of `HM` in these Krylov spaces.
+        projected_vectors: dict
+            The representations of `vectors` in these Krylov space.
+        """
+
+        assert which in ("all", "Sp", "Sm", "Sz")
+
+        if which == "all":
+            projected_vectors = dict()
+            projected_matrices = dict()
+            for tag in ["Sp", "Sm", "Sz"]:
+                excited_states_tag = self.excited_states(gs_ket, which=tag)
+                projected_matrices_tag, projected_vectors_tag = MultiKrylov(
+                    HM, excited_states_tag
+                )
+                projected_vectors.update(projected_vectors_tag)
+                projected_matrices.update(projected_matrices_tag)
+        else:
+            excited_states = self.excited_states(gs_ket, which=which)
+            projected_matrices, projected_vectors = MultiKrylov(
+                HM, excited_states
+            )
+        return projected_matrices, projected_vectors
 
 
 class JKGGPModelEDSolver(JKGModelEDSolver):
