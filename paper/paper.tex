@@ -176,10 +176,66 @@ In summary, by using classical Monte Carlo simulation and exact diagnoalization 
 
 
 % The following are the Appendixes of this article
+\newpage
 \appendix
 
-\section{Analysis of the classical energy and moment direction}
-\textcolor{red}{Analysis of the classical energy and moment direction. To be accomplished $\cdots \cdots$}
+\section{Classical energy and moment direction of the stripe ordered states}
+For classical stripe ordered states, all the spins are collinear and there are three degenerate spin configurations as shown in Fig.~\ref{fig:PhaseDiagram}(b)-(d) in the main text. The corresponding energies of the classical $J-K-\Gamma$ model for these spin configurations are
+\begin{subequations}
+    \begin{eqnarray}
+        E_{StripeX}^{c} & = & -(J + K) + 2 K v^x v^x \nonumber \\
+            & & +\: 2 \Gamma (v^y v^z - v^z v^x - v^x v^y)
+            \label{eq:AEcStripeX} \\
+        E_{StripeY}^{c} & = & -(J + K) + 2 K v^y v^y \nonumber \\
+            & & +\: 2 \Gamma (v^z v^x - v^x v^y - v^y v^z)
+            \label{eq:AEcStripeY} \\
+        E_{StripeZ}^{c} & = & -(J + K) + 2 K v^z v^z \nonumber \\
+            & & +\: 2 \Gamma (v^x v^y - v^y v^z - v^z v^x)
+            \label{eq:AEcStripeZ}
+    \end{eqnarray}
+\end{subequations}
+where $v^x$, $v^y$, $v^z$ are the corresponding components of the classical spin vector. The ordered moment direction of the classical stripe order is determined by the anisotropic parameters $K$ and $\Gamma$ and can be obtained by finding the global minimum of $E_{StripeX}^{c}$, $E_{StripeY}^{c}$ and $E_{StripeZ}^{c}$ with the constraint $|\bm{v}|=1$. It is clear from Eq.~\eqref{eq:AEcStripeX}, Eq.~\eqref{eq:AEcStripeY} and Eq.~\eqref{eq:AEcStripeZ}, if $\bm{v}_{min}$ minimize the energy, then $-\bm{v}_{min}$ also minimize the energy. Here we only consider one of the direction.
+
+When $\Gamma=0$, it can be clearly seen from Eq.~\eqref{eq:AEcStripeX}, $E_{StripeX}^c$ takes minimum value at $v^x=0$ for positive $K$ and $v^x=1$ for negative $K$. When the $\Gamma$ interaction is included, the problem becomes a little more complex. To find the unit vector $\bm{v}_{min}$ that minimize $E_{StripeX}^{c}$, we use the Lagrange multiplier method. For $\Gamma>0, K=0$, $E_{StripeX}^{c}$ takes minimum value when the condition $v^x=v^y+v^z$ is fulfilled. On the other hand, when $\Gamma<0, K=0$, there are only two vectors that minimize $E_{StripeX}^{c}$, i.e., $v^y=v^z=-v^x=\pm 1/\sqrt{3}$.
+
+More generally, if both $K, \Gamma \neq 0$, $E_{StripeX}^{c}$ has six extreme points where the first derivatives with respect to $v_x$, $v_y$ and $v_z$ equal zero. Here we give three of them explicitly and the other three are opposite to the given ones
+\begin{subequations}
+    \begin{eqnarray}
+        & \bm{v}_0: \quad v_{0}^{y}=-v_{0}^{z} = 1/\sqrt{2}, & v_{0}^{x} = 0 \\
+        & \bm{v}_1: \quad v_{1}^{y}=v_{1}^{z} = f_{1}(K, \Gamma), & v_{1}^{x} = g_{1}(K, \Gamma) v_{1}^{y} \\
+        & \bm{v}_2: \quad v_{2}^{y}=v_{2}^{z} = f_{2}(K, \Gamma), & v_{2}^{x} = g_{2}(K, \Gamma) v_{2}^{y}
+    \end{eqnarray}
+\end{subequations}
+and
+\begin{subequations}
+    \begin{eqnarray}
+        \lambda_{1} & = &- (\Gamma +2 K - \sqrt{9\Gamma^2 - 4 \Gamma K + 4 K^2}) / 4 \nonumber \\
+        \lambda_{2} & = & -(\Gamma +2 K + \sqrt{9\Gamma^2 + 4 \Gamma K + 4 K^2}) / 4 \nonumber \\
+        f_{1,2}(K, \Gamma) & = & \frac{|\Gamma|}{\sqrt{4 \lambda_{1,2} (\lambda_{1,2} + \Gamma) + 3 \Gamma^{2}}} \\
+        g_{1,2}(K, \Gamma) & = & (2 \lambda_{1,2} + \Gamma) / \Gamma
+    \end{eqnarray}
+\end{subequations}
+For a specific $K$ and $\Gamma$, by comparing the values of $E_{StripeX}^{c}$ at $\bm{v}_0$, $\bm{v}_1$ and $\bm{v}_2$ we can determine the global minimum of $E_{StripeX}^{c}$ and the corresponding $\bm{v}_{min}$. When both $\Gamma$ and $K$ are positive, $E_{StripeX}^{c}$ takes minimum value at the direction determined by $\bm{v}_0$. Otherwise, $\bm{v}_1$ specifies the direction where $E_{StripeX}^{c}$ has lowest energy.
+
+The similar analysis can be applied to $E_{StripeY}^{c}$ and $E_{StripeZ}^{c}$ and the ordered moment direction that minimize the classical energy can be obtained by a cyclic permutation $x \rightarrow y \rightarrow z \rightarrow x$ of the results for $E_{StripeX}^{c}$.
+
+\section{Classical ground states for some special model parameters}
+
+\subsection{$J=K=0, \Gamma=1$}
+For pure antiferromagetic $\Gamma$ model, the classical ground state is highly degenerate including FM state as well as states with no long range order. The ordered moment of the FM state lie in a plane that passes the coordinate origin and is perpendicular to the $[111]$ direction. Fig.~\ref{fig:SpinConfig}(a) show a typical spin configuration of those disordered states that have the same energy as the FM state.
+
+\subsection{$J=K=0, \Gamma=-1$}
+For pure ferromagnetic $\Gamma$ model, we found several energetically degenerate states as the classcial ground state, including FM state, stripe states and a noncollinear state. The FM state is shown in Fig.~\ref{fig:SpinConfig}(b) and the ordered moment is along the $[111]$ direction. As for the stripe states, there are three degenerate spin configurations as shown in Fig.~\ref{fig:SpinConfig}(c)-(e) and the directions for the cyan, red, pink, green, yellow and blue arrows are $[\bar{1}11]$, $[1\bar{1}\bar{1}]$, $[1\bar{1}1]$, $[\bar{1}1\bar{1}]$, $[11\bar{1}]$ and $[\bar{1}\bar{1}1]$, respectively. Apart from these collinear states, a noncollinear state exist as the classical ground state. The magnetic unit-cell contains four lattice sites. The directions for the yellow, gray, pink, cyan arrows in Fig.~\ref{fig:SpinConfig}(f) are $[11\bar{1}]$, $[111]$, $[1\bar{1}1]$ and $[\bar{1}11]$, respectively.
+
+\subsection{$J=\Gamma=0, K=1$}
+The ground state for the classical antiferromagetic Kitaev model is also degenerate involving three nematic ordered states and three stripe ordered states. For the nematic ordered state shown in Fig.~\ref{fig:SpinConfig}(g), the spins on the chains along the $x$-bond direction form antiferromagetic chains and the direction for the orange arrow is $[100]$. There is no association between different chains. Similarly, the antiferromagetic chains along the $y$-bond and $z$-bond direction for Fig.~\ref{fig:SpinConfig}(h) and Fig.~\ref{fig:SpinConfig}(i) respectively. The direction for the orange arrow in Fig.~\ref{fig:SpinConfig}(h) is $[010]$ and in Fig.~\ref{fig:SpinConfig}(i) is $[001]$. In addition to these nematic ordered states, there are stripe ordered states that have the same energy as the nematic ordered states. They have the same pattern as that is shown in Fig.~\ref{fig:SpinConfig}(c)-(e), but with different ordered moment directions. For the stripe ordered states shown in Fig.~\ref{fig:SpinConfig}(c)-(e) the ordered moment lie in the $yz$, $xz$ and $xy$ plane, respectively.
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.96\textwidth]{FigA4.pdf}
+    \caption{\label{fig:SpinConfig}(Color online) Classical ground state spin configurations for some special model parameters. For subfigure (a)-(f), the spin vectors were projected to the $xy$ plane and different spin vectors were represented by different colors. (a) Typical disordered spin configuration for $J=K=0,\Gamma=1$. (b)-(f) Spin configurations for $J=K=0,\Gamma=-1$. (g)-(i) Nematic ordered spin configurations for $J=\Gamma=0, K=1$.}
+\end{figure*}
+
 
 \newpage
 
