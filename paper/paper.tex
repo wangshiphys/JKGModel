@@ -97,32 +97,32 @@ is fully polaried along the $(\theta, \phi)$ direction. Here the cubic axes are 
 To understand the effects of inculding the off-diagonal $\Gamma$ term, we first study the classical $J-K-\Gamma$ model where the spin operators are viewed as unit-vectors in three dimension. On our proceeding, we note that the global phase diagram has been obtained previously by using a combination of Luttinger-Tsiza (LT) and classical Monte Carlo simulations \cite{PhysRevB.92.165108}. Six different magnetic orderings: ferromagnet (FM), stripe, 120$^\circ$ N\'{e}el order, nematic, $\mathbb{Z}_2$ and dual-$\mathbb{Z}_2$ vortex crystal phases were found, see Fig.~2 in Ref~\onlinecite{PhysRevB.92.165108}. Our classical Monte Carlo study give qualitatively the same phase diagram.
 
 \subsection{\label{sec:SectionIIIA}Moment direction of the classcial FM order}
-For the classical FM order, the energy of the $J-K-\Gamma$ model per lattice site is given by
+For the classical FM order, all spins are aligned in parallel and the energy of the $J-K-\Gamma$ model per lattice site is given by
 \begin{equation}
     E_{FM}^{c} = (3J + K) + 2 \Gamma (v^x v^y + v^y v^z + v^z v^x) \label{eq:EcFM}
 \end{equation}
 where $v^x$, $v^y$, $v^z$ are the corresponding components of the classical moment vector. On this level, the moment direction of the classical FM state is determined solely by $\Gamma$ and the problem becomes finding the global minimum and maximum of the multi-variable function $f(v^x, v^y, v^z) = v^x v^y + v^y v^z + v^z v^x$ with the constraint $|\bm{v}| = 1$. $f(v^x, v^y, v^z)$ takes maximum value $f_{max}=1$ at $v^x=v^y=v^z=\pm 1/\sqrt{3}$ and minimum value $f_{min}=-0.5$ when the conditions $v^x + v^y + v^z = 0$ and $|\bm{v}| = 1$ are fulfilled. The condition $v^x + v^y + v^z = 0$ specifies a plane that passes the coordinate origin and is perpendicular to the $[111]$ direction. Considering the reference frame shown in Fig.~\ref{fig:ModelDefinition}(b) this is actually the plane of the triangular lattice. That is to say, for $\Gamma > 0$ the ordered moment of the classcial FM state prefers to lie in the lattice plane and when $\Gamma$ is negative, the ordered moment would perpendicular to the lattice plane.
 
-Our classical Monte Carlo simulation found FM ordered state with the right moment direction for majority of the area marked as FM phase (see Fig.~2 in Ref~\onlinecite{PhysRevB.92.165108}) except for the pure $\Gamma$ term. For pure positive $\Gamma$ interaction, apart from the FM order lie in the lattice plane, we also found disordered states which have the same energy as the FM state but no states with lower energy were found. When $\Gamma=-1$, in addition to the FM order perpendicular to the lattice plane, other long-range ordered states which are energetically degenerate with the FM state appear (see Appendix A for details). Based on these observation, it is reasonable to say that the GS of the classical $\Gamma$ model is highly degenerate though the degeneracy may be lifted by introducing other interactions. For example, a ferromagnetic ($J<0$) Heisenberg interaction would break the degeneracy and select the FM ordered state as the GS. On the other hand, when positive Heisenberg interaction is included, which introduces further frustation to the system, the FM order is unlikely to be the GS. In fact, the classical GS were found to be disordered for $0 < J \ll \Gamma$ and stripe ordered for $0 < J \ll -\Gamma$. As for the disordered phase, when quantum flucations are involved, a quantum spin liquid state may emerge.
+Our classical Monte Carlo simulation found FM ordered state with the right moment direction for majority of the area marked as FM phase (see Fig.~2 in Ref~\onlinecite{PhysRevB.92.165108}) except for the pure $\Gamma$ term. For pure positive $\Gamma$ interaction, apart from the FM order lie in the lattice plane, we also found disordered states which have the same energy as the FM state but no states with lower energy were found. When $\Gamma=-1$, in addition to the FM order perpendicular to the lattice plane, other long-range ordered states which are energetically degenerate with the FM state appear (see Appendix~\ref{apx:AppendixA} for details). Based on these observation, it is reasonable to say that the GS of the classical $\Gamma$ model is highly degenerate though the degeneracy may be lifted by introducing other interactions. For example, a ferromagnetic ($J<0$) Heisenberg interaction would break the degeneracy and select the FM ordered state as the GS. On the other hand, when positive Heisenberg interaction is included, which introduces further frustation to the system, the FM order is unlikely to be the GS. In fact, the classical GS were found to be disordered for $0 < J \ll \Gamma$ and stripe ordered for $0 < J \ll -\Gamma$. As for the disordered phase, when quantum flucations are involved, a quantum spin liquid state may emerge.
 
 \subsection{\label{sec:SectionIIIB}Moment direction of the classcial stripe order}
-In the case of stripe order, there are three degenerate spin configurations as illustrated in Fig.~\ref{fig:PhaseDiagram}(b)-(d). For the spin configuration shown in Fig.~\ref{fig:PhaseDiagram}(b), the energy of the model Hamiltonian~\eqref{eq:Hamiltonian} is
+In the case of stripe order, there are three degenerate spin configurations as illustrated in Fig.~\ref{fig:PhaseDiagram}(b)-(d). For the spin configuration shown in Fig.~\ref{fig:PhaseDiagram}(b), the energy of the model Hamiltonian~\eqref{eq:Hamiltonian} per lattice site is
 \begin{eqnarray}
     E_{StripeX}^{c} & = & -(J + K) + 2 K v^x v^x \nonumber \\
         & & +\: 2 \Gamma (v^y v^z - v^z v^x - v^x v^y) \label{eq:EcStripeX}
 \end{eqnarray}
-and the energy for spin configuration in Fig.~\ref{fig:PhaseDiagram}(c) and \ref{fig:PhaseDiagram}(d) can be obtained by a cyclic permutation $x \rightarrow y \rightarrow z \rightarrow x$. The ordered moment direction of the classical stripe order is determined by the anisotropy parameters $K$ and $\Gamma$. In general ($J,K,\Gamma \neq 0$), $E_{StripeX}^{c}$ has three extreme points where the first derivatives with respect to $v_x$, $v_y$ and $v_z$ equal zero
+and the energy for spin configuration in Fig.~\ref{fig:PhaseDiagram}(c) and \ref{fig:PhaseDiagram}(d) can be obtained by a cyclic permutation $x \rightarrow y \rightarrow z \rightarrow x$. The ordered moment direction of the classical stripe order is determined by the anisotropy parameters $K$ and $\Gamma$. In general ($K,\Gamma \neq 0$), $E_{StripeX}^{c}$ has six extreme points where the first derivatives with respect to $v_x$, $v_y$ and $v_z$ equal zero. Here we give three of them explicitly and the other three are opposite to the given ones
 \begin{subequations}
     \label{eq:whole}
-    \begin{align}
-        & \mathbf{v}_0: \quad v_{0}^{y}=-v_{0}^{z} = \pm1/\sqrt{2}, \quad v_{0}^{x} = 0 \label{eq:v0} \\
-        & \mathbf{v}_1: \quad v_{1}^{y}=v_{1}^{z} = f_{1}(K, \Gamma), \quad v_{1}^{x} = g_{1}(K, \Gamma) v_{1}^{y} \label{eq:v1} \\
-        & \mathbf{v}_2: \quad v_{2}^{y}=v_{2}^{z} = f_{2}(K, \Gamma), \quad v_{2}^{x} = g_{2}(K, \Gamma) v_{2}^{y} \label{eq:v2}
-    \end{align}
+    \begin{eqnarray}
+        & \bm{v}_0:& \quad v_{0}^{y}=-v_{0}^{z} = 1/\sqrt{2}, \quad v_{0}^{x} = 0 \label{eq:v0} \\
+        & \bm{v}_1:& \quad v_{1}^{y}=v_{1}^{z} = f_{1}(K, \Gamma), \quad v_{1}^{x} = g_{1}(K, \Gamma) v_{1}^{y} \label{eq:v1} \\
+        & \bm{v}_2:& \quad v_{2}^{y}=v_{2}^{z} = f_{2}(K, \Gamma), \quad v_{2}^{x} = g_{2}(K, \Gamma) v_{2}^{y} \label{eq:v2}
+    \end{eqnarray}
 \end{subequations}
-see Appendix B for their explicit expressions.
+see Appendix~\ref{apx:AppendixB} for their explicit expressions.
 
-For $\Gamma=0, K>0$, it can be clearly seen from Eq.~\eqref{eq:EcStripeX} that $E_{StripeX}^{c}$ takes minimum value at $v^x = 0$ which means that the stripe order shown in Fig.~\ref{fig:PhaseDiagram}(b) prefers to lie in the $yz$ plane. An infinitesimal positive $\Gamma$ would fix the ordered moment to the $\mathbf{v}_0$ direction whereas negative $\Gamma$ drives it to the $\mathbf{v}_1$ direction. When $\Gamma=0, K<0$, the ordered moment would along the $x$-axis to have lowest energy, both positive and negative $\Gamma$ make it deviate from the $x$-axis and point to the $\mathbf{v}_1$ direction. All these stripe orders with the specific moment direction were found in the corresponding parameter space by our Monte Carlo simulation. However, in the HK limit ($\Gamma=0$), apart from the stripe orders lie in the axis plane, nematic orders which have the same energy were also found in the range $0 \leq |J| \ll K$. The GS of the classical HK model near the antiferromagetic Kitaev point ($K=1$) is high degenerate and both positive and negative $\Gamma$ interactions select specific stripe ordered state as the GS.
+For $\Gamma=0, K>0$, it can be clearly seen from Eq.~\eqref{eq:EcStripeX} that $E_{StripeX}^{c}$ takes minimum value at $v^x = 0$ which means that the stripe order shown in Fig.~\ref{fig:PhaseDiagram}(b) prefers to lie in the $yz$ plane. An infinitesimal positive $\Gamma$ would fix the ordered moment to the $\bm{v}_0$ direction whereas negative $\Gamma$ drives it to the $\bm{v}_1$ direction. When $\Gamma=0, K<0$, the ordered moment would along the $x$-axis to have lowest energy, both positive and negative $\Gamma$ make it deviate from the $x$-axis and point to the $\bm{v}_1$ direction. All these stripe orders with the specific moment direction were found in the corresponding parameter space by our Monte Carlo simulation. However, in the HK limit ($\Gamma=0$), apart from the stripe orders lie in the axis plane, nematic orders which have the same energy were also found in the range $0 \leq |J| \ll K$ (see Appendix~\ref{apx:AppendixA} for details). The GS of the classical HK model near the antiferromagetic Kitaev point ($K=1$) is high degenerate and both positive and negative $\Gamma$ interactions select specific stripe ordered state as the GS.
 
 \section{\label{sec:SectionIV}Global Phase Diagram}
 \begin{figure*}
@@ -179,7 +179,30 @@ In summary, by using classical Monte Carlo simulation and exact diagnoalization 
 \newpage
 \appendix
 
-\section{Classical energy and moment direction of the stripe ordered states}
+\section{\label{apx:AppendixA}Classical ground states for some special model parameters}
+
+\subsection{$J=K=0, \Gamma=1$}
+For pure antiferromagetic $\Gamma$ model, the classical ground state is highly degenerate including FM state as well as states with no long range order. The ordered moment of the FM state lie in a plane that passes the coordinate origin and is perpendicular to the $[111]$ direction. Fig.~\ref{fig:GSForPositiveGamma} show a typical spin configuration of those disordered states that have the same energy as the FM state.
+\begin{figure}
+    \includegraphics[width=0.45\textwidth]{FigA1.pdf}
+    \caption{\label{fig:GSForPositiveGamma}(Color online) Typical disordered ground state for $J=K=0, \Gamma=1$. The 3D unit spin vectors were projected to the $xy$ plane and different vectors were represented by different colors.}
+\end{figure}
+
+\subsection{$J=K=0, \Gamma=-1$}
+For pure ferromagnetic $\Gamma$ model, we found several energetically degenerate states as the classcial ground state, including FM state, stripe states and a noncollinear state. The ordered moment of the FM state along the $[111]$ direction. As for the stripe states, there are three degenerate spin configurations as shown in Fig.~\ref{fig:GSForNegativeGamma}(a)-(c) and the directions for the cyan, red, pink, green, yellow and blue arrows are $[\bar{1}11]$, $[1\bar{1}\bar{1}]$, $[1\bar{1}1]$, $[\bar{1}1\bar{1}]$, $[11\bar{1}]$ and $[\bar{1}\bar{1}1]$, respectively. Apart from these collinear states, a noncollinear state exist as the classical ground state. The magnetic unit-cell contains four lattice sites. The directions for the yellow, gray, pink, cyan arrows in Fig.~\ref{fig:GSForNegativeGamma}(d) are $[11\bar{1}]$, $[111]$, $[1\bar{1}1]$ and $[\bar{1}11]$, respectively.
+\begin{figure}
+    \includegraphics[width=0.45\textwidth]{FigA2.pdf}
+    \caption{\label{fig:GSForNegativeGamma}(Color online) Typical ground state spin configurations for $J=K=0, \Gamma=-1$. The 3D unit spin vectors were projected to the $xy$ plane and different vectors were represented by different colors. (a)-(c) Stripe ordered states. The directions for the cyan, red, pink, green, yellow and blue arrows are $[\bar{1}11]$, $[1\bar{1}\bar{1}]$, $[1\bar{1}1]$, $[\bar{1}1\bar{1}]$, $[11\bar{1}]$ and $[\bar{1}\bar{1}1]$, respectively. (d) Noncollinear state. The directions for the yellow, gray, pink, cyan arrows are $[11\bar{1}]$, $[111]$, $[1\bar{1}1]$ and $[\bar{1}11]$, respectively.}
+\end{figure}
+
+\subsection{$J=\Gamma=0, K=1$}
+The ground state for the classical antiferromagetic Kitaev model is also degenerate involving three nematic ordered states and three stripe ordered states. For the nematic ordered state shown in Fig.~\ref{fig:GSForPositiveK}(a), the spins on the chains along the $x$-bond direction form antiferromagetic chains and the direction for the orange arrow is $[100]$. There is no association between different chains. Similarly, the antiferromagetic chains along the $y$-bond and $z$-bond direction for Fig.~\ref{fig:GSForPositiveK}(b) and Fig.~\ref{fig:GSForPositiveK}(c) respectively. The direction for the orange arrow in Fig.~\ref{fig:GSForPositiveK}(b) is $[010]$ and in Fig.~\ref{fig:GSForPositiveK}(c) is $[001]$. In addition to these nematic ordered states, there are stripe ordered states that have the same energy as the nematic ordered states. For the stripe ordered states shown in Fig.~\ref{fig:GSForPositiveK}(d)-(f), the corresponding ordered moment lie in the $yz$, $xz$ and $xy$ plane, respectively.
+\begin{figure}
+    \includegraphics[width=0.5\textwidth]{FigA3.pdf}
+    \caption{\label{fig:GSForPositiveK}(Color online) Nematic and stripe ground state spin configurations for $J=\Gamma=0, K=1$.}
+\end{figure}
+
+\section{\label{apx:AppendixB}Classical energy and moment direction of the stripe ordered states}
 For classical stripe ordered states, all the spins are collinear and there are three degenerate spin configurations as shown in Fig.~\ref{fig:PhaseDiagram}(b)-(d) in the main text. The corresponding energies of the classical $J-K-\Gamma$ model for these spin configurations are
 \begin{subequations}
     \begin{eqnarray}
@@ -219,22 +242,6 @@ For a specific $K$ and $\Gamma$, by comparing the values of $E_{StripeX}^{c}$ at
 
 The similar analysis can be applied to $E_{StripeY}^{c}$ and $E_{StripeZ}^{c}$ and the ordered moment direction that minimize the classical energy can be obtained by a cyclic permutation $x \rightarrow y \rightarrow z \rightarrow x$ of the results for $E_{StripeX}^{c}$.
 
-\section{Classical ground states for some special model parameters}
-
-\subsection{$J=K=0, \Gamma=1$}
-For pure antiferromagetic $\Gamma$ model, the classical ground state is highly degenerate including FM state as well as states with no long range order. The ordered moment of the FM state lie in a plane that passes the coordinate origin and is perpendicular to the $[111]$ direction. Fig.~\ref{fig:SpinConfig}(a) show a typical spin configuration of those disordered states that have the same energy as the FM state.
-
-\subsection{$J=K=0, \Gamma=-1$}
-For pure ferromagnetic $\Gamma$ model, we found several energetically degenerate states as the classcial ground state, including FM state, stripe states and a noncollinear state. The FM state is shown in Fig.~\ref{fig:SpinConfig}(b) and the ordered moment is along the $[111]$ direction. As for the stripe states, there are three degenerate spin configurations as shown in Fig.~\ref{fig:SpinConfig}(c)-(e) and the directions for the cyan, red, pink, green, yellow and blue arrows are $[\bar{1}11]$, $[1\bar{1}\bar{1}]$, $[1\bar{1}1]$, $[\bar{1}1\bar{1}]$, $[11\bar{1}]$ and $[\bar{1}\bar{1}1]$, respectively. Apart from these collinear states, a noncollinear state exist as the classical ground state. The magnetic unit-cell contains four lattice sites. The directions for the yellow, gray, pink, cyan arrows in Fig.~\ref{fig:SpinConfig}(f) are $[11\bar{1}]$, $[111]$, $[1\bar{1}1]$ and $[\bar{1}11]$, respectively.
-
-\subsection{$J=\Gamma=0, K=1$}
-The ground state for the classical antiferromagetic Kitaev model is also degenerate involving three nematic ordered states and three stripe ordered states. For the nematic ordered state shown in Fig.~\ref{fig:SpinConfig}(g), the spins on the chains along the $x$-bond direction form antiferromagetic chains and the direction for the orange arrow is $[100]$. There is no association between different chains. Similarly, the antiferromagetic chains along the $y$-bond and $z$-bond direction for Fig.~\ref{fig:SpinConfig}(h) and Fig.~\ref{fig:SpinConfig}(i) respectively. The direction for the orange arrow in Fig.~\ref{fig:SpinConfig}(h) is $[010]$ and in Fig.~\ref{fig:SpinConfig}(i) is $[001]$. In addition to these nematic ordered states, there are stripe ordered states that have the same energy as the nematic ordered states. They have the same pattern as that is shown in Fig.~\ref{fig:SpinConfig}(c)-(e), but with different ordered moment directions. For the stripe ordered states shown in Fig.~\ref{fig:SpinConfig}(c)-(e) the ordered moment lie in the $yz$, $xz$ and $xy$ plane, respectively.
-
-\begin{figure*}
-    \centering
-    \includegraphics[width=0.96\textwidth]{FigA4.pdf}
-    \caption{\label{fig:SpinConfig}(Color online) Classical ground state spin configurations for some special model parameters. For subfigure (a)-(f), the spin vectors were projected to the $xy$ plane and different spin vectors were represented by different colors. (a) Typical disordered spin configuration for $J=K=0,\Gamma=1$. (b)-(f) Spin configurations for $J=K=0,\Gamma=-1$. (g)-(i) Nematic ordered spin configurations for $J=\Gamma=0, K=1$.}
-\end{figure*}
 
 
 \newpage
