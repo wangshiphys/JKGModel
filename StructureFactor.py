@@ -1,6 +1,6 @@
 """
-Calculate the static structure factor of J-K-Gamma-Gamma' model on
-triangular lattice.
+Calculate static spin structure factor for both classical and quantum spin
+model.
 """
 
 
@@ -11,20 +11,17 @@ __all__ = [
 
 
 from itertools import combinations
-from numba import complex128, float64, jit, prange
 
 import numpy as np
 from HamiltonianPy import SpinInteraction
+from numba import jit, prange
 
 
 # Core function for calculating the static structure factors
-@jit(
-    complex128[:, :](float64[:, :, :], float64[:, :], float64[:]),
-    nopython=True, cache=True, parallel=True,
-)
+@jit(nopython=True, cache=True, parallel=True)
 def _StructureFactorCore(kpoints, dRs, correlations):
-    numkx, numky, space_dim = kpoints.shape
-    factors = np.zeros((numkx, numky), np.complex128)
+    numkx, numky = kpoints.shape[0:2]
+    factors = np.empty((numkx, numky), dtype=np.complex128)
     for i in prange(numkx):
         for j in range(numky):
             factors[i, j] = np.sum(
@@ -33,9 +30,9 @@ def _StructureFactorCore(kpoints, dRs, correlations):
     return factors
 
 
-def QuantumSpinStructureFactor(kpoints, points, ket):
+def QuantumSpinStructureFactor(kpoints, points, state):
     """
-    Calculate static structure factors over the given `ket`.
+    Calculate static structure factors over the given quantum state.
 
     Parameters
     ----------
@@ -43,9 +40,9 @@ def QuantumSpinStructureFactor(kpoints, points, ket):
         A collection of k-points.
     points : 2D array with shape (site_num, 2)
         A collection of coordinates of lattice sites.
-    ket : 2D array with shape (2**site_num, 1)
+    state : 1D array with shape (2**site_num, )
         Matrix representation of a quantum state.
-        `ket` should be normalized.
+        `state` should be normalized.
 
     Returns
     -------
@@ -60,8 +57,8 @@ def QuantumSpinStructureFactor(kpoints, points, ket):
     for i, j in combinations(range(site_num), r=2):
         Siz_dot_Sjz = mfunc([(i, "z"), (j, "z")], site_num, coeff=0.5)
         Sip_dot_Sjm = mfunc([(i, "p"), (j, "m")], site_num, coeff=0.5)
-        avg_ij = np.vdot(ket, Siz_dot_Sjz.dot(ket))
-        avg_ij += np.vdot(ket, Sip_dot_Sjm.dot(ket))
+        avg_ij = np.vdot(state, Siz_dot_Sjz.dot(state))
+        avg_ij += np.vdot(state, Sip_dot_Sjm.dot(state))
         avg_ij += avg_ij.conj()
         del Siz_dot_Sjz, Sip_dot_Sjm
 
@@ -73,7 +70,7 @@ def QuantumSpinStructureFactor(kpoints, points, ket):
     return _StructureFactorCore(kpoints, dRs, correlations) / site_num
 
 
-def ClassicalSpinStructureFactor(kpoints, points, vectors):
+def ClassicalSpinStructureFactor(kpoints, points, state):
     """
     Calculate static structure factors over a specific vectors configuration.
 
@@ -83,7 +80,7 @@ def ClassicalSpinStructureFactor(kpoints, points, vectors):
         A collection of k-points.
     points : 2D array with shape (site_num, 2)
         A collection of coordinates of lattice sites.
-    vectors : 2D array with shape (site_num, 3)
+    state : 2D array with shape (site_num, 3)
         A collection of 3D unit vectors defined on `points`.
 
     Returns
@@ -96,7 +93,7 @@ def ClassicalSpinStructureFactor(kpoints, points, vectors):
     correlations = np.identity(site_num, dtype=np.float64)
     dRs = np.zeros((site_num, site_num, space_dim), dtype=np.float64)
     for i, j in combinations(range(site_num), r=2):
-        vi_dot_vj = np.matmul(vectors[i], vectors[j])
+        vi_dot_vj = np.matmul(state[i], state[j])
         correlations[i, j] = correlations[j, i] = vi_dot_vj
         dRs[i, j] = points[i] - points[j]
         dRs[j, i] = points[j] - points[i]
