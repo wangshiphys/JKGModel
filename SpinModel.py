@@ -1,21 +1,18 @@
 """
-Exact diagonalization of the J-K-Gamma-Gamma' (J-K-G-GP) model on triangular
-lattice.
+Exact diagonalization of the J-K-Gamma (J-K-G) and J-K-Gamma-Gamma' (J-K-G-GP)
+model on triangular lattice.
 """
 
 
-__all__ = [
-    "JKGModelEDSolver",
-    "JKGGPModelEDSolver",
-]
+__all__ = ["JKGModelEDSolver", "JKGGPModelEDSolver"]
 
 
 import logging
 from pathlib import Path
 from time import time
 
+import HamiltonianPy as HP
 import numpy as np
-from HamiltonianPy import SpinInteraction, SpinOperator, MultiKrylov
 from scipy.sparse import load_npz, save_npz
 from scipy.sparse.linalg import eigsh
 
@@ -53,14 +50,14 @@ class JKGModelEDSolver(TriangularLattice):
             HK = load_npz(file_HK)
             HG = load_npz(file_HG)
             t1 = time()
-            logger.info("Load HJ, HK, HG, dt=%.4fs", t1 - t0)
+            logger.info("Load HJ, HK, HG, dt=%.3fs", t1 - t0)
         else:
             site_num = self.site_num
             configs = (("x", "y", "z"), ("y", "z", "x"), ("z", "x", "y"))
 
             HJ = HK = HG = 0.0
-            msg = "%s-bond: %2d/%2d, dt=%.4fs"
-            m_func = SpinInteraction.matrix_function
+            msg = "%s-bond: %2d/%2d, dt=%.3fs"
+            m_func = HP.SpinInteraction.matrix_function
             for (gamma, alpha, beta), bonds in zip(configs, self.all_bonds):
                 bond_num = len(bonds)
                 for count, (index0, index1) in enumerate(bonds, start=1):
@@ -83,22 +80,22 @@ class JKGModelEDSolver(TriangularLattice):
             save_npz(file_HG, HG, compressed=True)
         return HJ, HK, HG
 
-    def GS(
+    def EigenStates(
             self, es_path="data/QuantumSpinModel/ES/",
-            k=6, v0=None, tol=0.0, **model_params,
+            k=1, v0=None, tol=0.0, **model_params,
     ):
         """
-        Find the smallest `kth` eigenvalues and eigenvectors of the J-K-G
+        Find the smallest `k` eigenvalues and eigenvectors of the J-K-G
         model Hamiltonian.
 
         This method saves the eigenvalues and eigenvectors into a single file in
         compressed `.npz` format. The `.npz` files will be saved into the given
         `es_path` and the names of the `.npz` files have the following pattern:
-            "ES_num1={num1}_num2={num2}_which={which}_
-            alpha={alpha:.4f}_beta={beta:.4f}.npz"
+        `ES_num1={num1}_num2={num2}_direction={direction}_alpha={alpha:.4f}_beta={beta:.4f}.npz`
         The variables in the "{}"s are replaced with the actual variables.
+
         The lattice size `num1` and `num2` are stored with keyword name: `size`;
-        The lattice type `which` is stored with keyword name: `which`;
+        The lattice direction is stored with keyword name: `direction`;
         The model parameters `alpha` and `beta` are stored with keyword
         name: `parameters`;
         The eigenvalues are stored with keyword name: `values`;
@@ -106,13 +103,11 @@ class JKGModelEDSolver(TriangularLattice):
         For details about `.npz` format, see `numpy.savez_compressed`.
 
         This method first check whether the eigenstates data for the given
-        `alpha` and `beta` exists in the given `es_path`:
-            1. If exist, read eigenstates data into memory;
-            2. If the requested data does not exist in the given `es_path`:
-                2.1 Preform the calculation;
-                2.2 Save the eigenstates data according to the rules just
-                described.
-            3. Return the eigenstates data and the Hamiltonian matrix.
+        `alpha` and `beta` exists in the given `es_path`. If exist,
+        read eigenstates data into memory; if the requested data does not
+        exist, then preform the calculation and save the eigenstates data
+        according to the rules just described. Finally the eigenstates data
+        and the Hamiltonian matrix are returned.
 
         Parameters
         ----------
@@ -124,8 +119,8 @@ class JKGModelEDSolver(TriangularLattice):
         k : int, optional
             The number of eigenvalues and eigenvectors desired. `k` must be
             smaller than the dimension of the Hilbert space. It is not
-            possible to compute all eigenvectors of a matrix.
-            Default: 6.
+            possible to compute all eigenvectors of a large matrix.
+            Default: 1.
         v0 : np.ndarray, optional
             Starting vector for iteration. This parameter is passed to the
             `scipy.sparse.linalg.eigsh` as the `v0` parameter.
@@ -170,12 +165,17 @@ class JKGModelEDSolver(TriangularLattice):
         J = np.sin(alpha * np.pi) * np.sin(beta * np.pi)
         K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
         G = np.cos(alpha * np.pi)
+        J = 0.0 if np.abs(J) <= 1E-10 else J
+        K = 0.0 if np.abs(K) <= 1E-10 else K
+        G = 0.0 if np.abs(G) <= 1E-10 else G
+
         HJ, HK, HG = self._TermMatrix()
-        HM = K * HK
-        del HK
-        HM += J * HJ
-        del HJ
-        HM += G * HG
+        HJ *= J
+        HK *= K
+        HG *= G
+        HM = HJ + HK
+        del HJ, HK
+        HM += HG
         del HG
 
         es_path = Path(es_path)
@@ -194,27 +194,27 @@ class JKGModelEDSolver(TriangularLattice):
             t0 = time()
             values, vectors = eigsh(HM, k=k, which="SA", v0=v0, tol=tol)
             t1 = time()
-            msg = "ES for alpha=%.4f, beta=%.4f, dt=%.4fs"
+            msg = "ES for alpha=%.4f, beta=%.4f, dt=%.3fs"
             logger.info(msg, alpha, beta, t1 - t0)
 
             es_path.mkdir(exist_ok=True, parents=True)
             np.savez_compressed(
-                es_full_name, size=[self.num1, self.num2], which=[self.which],
+                es_full_name,
+                size=[self.num1, self.num2], direction=[self.direction],
                 parameters=[alpha, beta], values=values, vectors=vectors,
             )
             logger.info("Save ES data to %s", es_full_name)
         return values, vectors, HM
 
-
-    def excited_states(self, gs_ket, which="Sm"):
+    def excited_states(self, gs_ket, excitation="Sm"):
         """
         Calculate excited states.
 
         Parameters
         ----------
-        gs_ket : np.ndarray with shape (N, 1)
+        gs_ket : np.ndarray with shape (N, )
             The ground state vector.
-        which : ["Sp" | "Sm" | "Sz"], str, optional
+        excitation : ["Sp" | "Sm" | "Sz"], str, optional
             The type of operators to be operated on the ground state.
             "Sp": Operate all $S_i^+$ operators on the ground state;
             "Sm": Operate all $S_i^-$ operators on the ground state;
@@ -229,28 +229,28 @@ class JKGModelEDSolver(TriangularLattice):
             corresponding vectors of excited states.
         """
 
-        if which == "Sp":
+        if excitation == "Sp":
             otype = "p"
-        elif which == "Sm":
+        elif excitation == "Sm":
             otype = "m"
-        elif which == "Sz":
+        elif excitation == "Sz":
             otype = "z"
         else:
-            raise ValueError("Invalid `which`: {0}".format(which))
+            raise ValueError("Invalid `excitation`: {0}".format(excitation))
 
         excited_states = dict()
         cluster = self.cluster
         total_spin = self.site_num
-        mfunc = SpinOperator.matrix_function
+        mfunc = HP.SpinOperator.matrix_function
         for site in cluster.points:
             site_index = cluster.getIndex(site=site, fold=False)
-            spin_operator = SpinOperator(otype=otype, site=site)
+            spin_operator = HP.SpinOperator(otype=otype, site=site)
             excited_states[spin_operator] = mfunc(
                 (site_index, otype), total_spin=total_spin
             ).dot(gs_ket)
         return excited_states
 
-    def LanczosProjection(self, HM, gs_ket, which="Sm"):
+    def LanczosProjection(self, HM, gs_ket, excitation="Sm"):
         """
         Perform Lanczos projection of the Hamiltonian matrix and excited states.
 
@@ -258,9 +258,9 @@ class JKGModelEDSolver(TriangularLattice):
         ----------
         HM : csr_matrix with shape (N, N)
             The Hamiltonian matrix.
-        gs_ket : np.ndarray with shape (N, 1)
+        gs_ket : np.ndarray with shape (N, )
             The ground state vector.
-        which : ["all", "Sp" | "Sm" | "Sz"], str, optional
+        excitation : ["all", "Sp" | "Sm" | "Sz"], str, optional
             The type of operators to be operated on the ground state.
             "Sp": Operate all $S_i^+$ operators on the ground state;
             "Sm": Operate all $S_i^-$ operators on the ground state;
@@ -277,21 +277,21 @@ class JKGModelEDSolver(TriangularLattice):
             The representations of `vectors` in these Krylov space.
         """
 
-        assert which in ("all", "Sp", "Sm", "Sz")
+        assert excitation in ("all", "Sp", "Sm", "Sz")
 
-        if which == "all":
+        if excitation == "all":
             projected_vectors = dict()
             projected_matrices = dict()
             for tag in ["Sp", "Sm", "Sz"]:
-                excited_states_tag = self.excited_states(gs_ket, which=tag)
-                projected_matrices_tag, projected_vectors_tag = MultiKrylov(
+                excited_states_tag = self.excited_states(gs_ket, excitation=tag)
+                projected_matrices_tag, projected_vectors_tag = HP.MultiKrylov(
                     HM, excited_states_tag
                 )
                 projected_vectors.update(projected_vectors_tag)
                 projected_matrices.update(projected_matrices_tag)
         else:
-            excited_states = self.excited_states(gs_ket, which=which)
-            projected_matrices, projected_vectors = MultiKrylov(
+            excited_states = self.excited_states(gs_ket, excitation=excitation)
+            projected_matrices, projected_vectors = HP.MultiKrylov(
                 HM, excited_states
             )
         return projected_matrices, projected_vectors
@@ -313,7 +313,7 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         # Prepare HJ, HK, HG first
         HJ, HK, HG = super()._TermMatrix()
 
-        file_HGP = Path("tmp/") / ("TRIANGLE_" + self.identity + "_HGP.npz")
+        file_HGP = Path("tmp/TRIANGLE_" + self.identity.upper() + "_HGP.npz")
 
         logger = logging.getLogger(__name__).getChild(
             ".".join([self.__class__.__name__, "TermMatrix"])
@@ -322,14 +322,14 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             t0 = time()
             HGP = load_npz(file_HGP)
             t1 = time()
-            logger.info("Load HGP, dt=%.4fs", t1 - t0)
+            logger.info("Load HGP, dt=%.3fs", t1 - t0)
         else:
             site_num = self.site_num
             configs = (("x", "y", "z"), ("y", "z", "x"), ("z", "x", "y"))
 
             HGP = 0.0
-            msg = "%s-bond: %2d/%2d, dt=%.4fs"
-            m_func = SpinInteraction.matrix_function
+            msg = "%s-bond: %2d/%2d, dt=%.3fs"
+            m_func = HP.SpinInteraction.matrix_function
             for (gamma, alpha, beta), bonds in zip(configs, self.all_bonds):
                 bond_num = len(bonds)
                 for count, (index0, index1) in enumerate(bonds, start=1):
@@ -343,22 +343,22 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             save_npz(file_HGP, HGP, compressed=True)
         return HJ, HK, HG, HGP
 
-    def GS(
+    def EigenStates(
             self, es_path="data/QuantumSpinModel/ES/",
-            k=6, v0=None, tol=0.0, **model_params,
+            k=1, v0=None, tol=0.0, **model_params,
     ):
         """
-        Find the smallest `kth` eigenvalues and eigenvectors of the J-K-G-GP
+        Find the smallest `k` eigenvalues and eigenvectors of the J-K-G-GP
         model Hamiltonian.
 
         This method saves the eigenvalues and eigenvectors into a single file in
         compressed `.npz` format. The `.npz` files will be saved into the given
         `es_path` and the names of the `.npz` files have the following pattern:
-            "ES_num1={num1}_num2={num2}_which={which}_
-            J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz"
+        `ES_num1={num1}_num2={num2}_direction={direction}_J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz`
         The variables in the "{}"s are replaced with the actual variables.
+
         The lattice size `num1` and `num2` are stored with keyword name: `size`;
-        The lattice type `which` is stored with keyword name: `which`;
+        The lattice direction is stored with keyword name: `direction`;
         The model parameters `J`, `K`, `G` and `GP` are stored with keyword
         name: `parameters`;
         The eigenvalues are stored with keyword name: `values`;
@@ -366,13 +366,11 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         For details about `.npz` format, see `numpy.savez_compressed`.
 
         This method first check whether the eigenstates data for the given
-        `J`, `K`, `G` and `GP` exists in the given `gs_path`:
-            1. If exist, read the eigenstates data into memory;
-            2. If the requested data does not exist in the given `es_path`:
-                2.1 Perform the calculation;
-                2.2 Save the eigenstates data according to the rules just
-                described.
-            3. Return the eigenstates data and Hamiltonian matrix.
+        `J`, `K`, `G` and `GP` exists in the given `es_path`. If exist,
+        read eigenstates data into memory; if the requested data does not
+        exist, then preform the calculation and save the eigenstates data
+        according to the rules just described. Finally the eigenstates data
+        and the Hamiltonian matrix are returned.
 
         Parameters
         ----------
@@ -384,8 +382,8 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         k : int, optional
             The number of eigenvalues and eigenvectors desired. `k` must be
             smaller than the dimension of the Hilbert space. It is not
-            possible to compute all eigenvectors of a matrix.
-            Default: 6.
+            possible to compute all eigenvectors of a large matrix.
+            Default: 1.
         v0 : np.ndarray, optional
             Starting vector for iteration. This parameter is passed to the
             `scipy.sparse.linalg.eigsh` as the `v0` parameter.
@@ -404,7 +402,7 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             G is the coefficient of the Gamma term;
             GP is the coefficient of the Gamma' term.
 
-         Returns
+        Returns
         -------
         values : np.array
             Array of k eigenvalues.
@@ -427,18 +425,21 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
         K = actual_model_params["K"]
         G = actual_model_params["G"]
         GP = actual_model_params["GP"]
+
         HJ, HK, HG, HGP = self._TermMatrix()
-        HM = K * HK
-        del HK
-        HM += GP * HGP
-        del HGP
-        HM += J * HJ
-        del HJ
-        HM += G * HG
+        HJ *= J
+        HK *= K
+        HG *= G
+        HGP *= GP
+        HM = HJ + HK
+        del HJ, HK
+        HM += HG
         del HG
+        HM += HGP
+        del HGP
 
         es_path = Path(es_path)
-        es_file_name = "GS_" + self.identity
+        es_file_name = "ES_" + self.identity
         es_file_name += "_J={J:.4f}_K={K:.4f}_G={G:.4f}_GP={GP:.4f}.npz".format(
             J=J, K=K, G=G, GP=GP,
         )
@@ -456,13 +457,40 @@ class JKGGPModelEDSolver(JKGModelEDSolver):
             t0 = time()
             values, vectors = eigsh(HM, k=k, which="SA", v0=v0, tol=tol)
             t1 = time()
-            msg = "ES for J=%.4f, K=%.4f, G=%.4f, GP=%.4f, dt=%.4fs"
+            msg = "ES for J=%.4f, K=%.4f, G=%.4f, GP=%.4f, dt=%.3fs"
             logger.info(msg, J, K, G, GP, t1 - t0)
 
             es_path.mkdir(exist_ok=True, parents=True)
             np.savez_compressed(
-                es_full_name, size=[self.num1, self.num2], which=[self.which],
+                es_full_name,
+                size=[self.num1, self.num2], direction=[self.direction],
                 parameters=[J, K, G, GP], values=values, vectors=vectors,
             )
             logger.info("Save ES data to %s", es_full_name)
         return values, vectors, HM
+
+
+if __name__ == "__main__":
+    import sys
+    logging.basicConfig(
+        level=logging.INFO, stream=sys.stdout,
+        format="%(asctime)s - %(message)s",
+    )
+
+    num1 = 3
+    num2 = 4
+    direction = "xy"
+    alpha, beta = 0.3, 0.25
+    solver = JKGModelEDSolver(num1=num1, num2=num2, direction=direction)
+    values, vectors, HM = solver.EigenStates(alpha=alpha, beta=beta)
+    GE = values[0]
+    print("alpha={0:.4f},beta={1:.4f}, GE={2}".format(alpha, beta, GE))
+    values, vectors, HM = solver.EigenStates(alpha=alpha, beta=beta)
+
+    J, K, G, GP = 1.0, 2.0, 3.0, 4.0
+    solver = JKGGPModelEDSolver(num1=num1, num2=num2, direction=direction)
+    values, vectors, HM = solver.EigenStates(J=J, K=K, G=G, GP=GP)
+    GE = values[0]
+    msg = "J={0:.1f},K={1:.1f},G={2:.1f},GP={3:.1f}, GE={4}"
+    print(msg.format(J, K, G, GP, GE))
+    values, vectors, HM = solver.EigenStates(J=J, K=K, G=G, GP=GP)
