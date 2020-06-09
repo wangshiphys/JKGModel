@@ -5,17 +5,20 @@ from time import time
 from ClassicalModel import JKGModelClassicalSolver
 
 logging.basicConfig(
-    stream=sys.stdout, level=logging.INFO,
-    format="%(asctime)s - %(message)s",
+    stream=sys.stdout, level=logging.INFO, format="%(asctime)s - %(message)s",
 )
 logging.info("Program start running")
 
 max_run = 10
-numx = numy = 6
-solver = JKGModelClassicalSolver(numx, numy)
-for i in range(1, max_run+1):
+num1 = num2 = 12
+direction = "xz"
+alpha = 0.50
+beta = 0.50
+
+solver = JKGModelClassicalSolver(num1=num1, num2=num2, direction=direction)
+for i in range(max_run):
     t0 = time()
-    solver.MinimizeGeneralSpinConfig(alpha=0.5, beta=0.5)
+    solver.OptimizeSpinConfig(alpha=alpha, beta=beta)
     t1 = time()
-    logging.info("%d/%d, dt=%.4fs", i, max_run, t1 - t0)
+    logging.info("%2d/%2d, dt=%.3fs", i + 1, max_run, t1 - t0)
 logging.info("Program stop running")
