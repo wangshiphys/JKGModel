@@ -1,28 +1,56 @@
-import logging
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-from SpinModel import *
-from utilities import derivation
+from SpinModel import JKGModelEDSolver
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    stream=sys.stdout,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-)
-logging.info("Program start running")
+def derivation(xs, ys, nth=1):
+    """
+    Calculate the nth derivatives of `ys` versus `xs` discretely.
+
+    The derivatives are calculated using the following formula:
+        dy / dx = (ys[i+1] - ys[i]) / (xs[i+1] - xs[i])
+
+    Parameters
+    ----------
+    xs : 1-D array
+        The independent variables.
+        `xs` is assumed to be sorted in ascending order and there are no
+        identical values in `xs`.
+    ys : 1-D array
+        The dependent variables.
+        `ys` should be of the same length as `xs`.
+    nth : int, optional
+        The nth derivatives.
+        Default: 1.
+
+    Returns
+    -------
+    xs : 1-D array
+        The independent variables.
+    ys : 1-D array
+        The nth derivatives corresponding to the returned `xs`.
+    """
+
+    assert isinstance(nth, int) and nth >= 0
+    assert isinstance(xs, np.ndarray) and xs.ndim == 1
+    assert isinstance(ys, np.ndarray) and ys.shape == xs.shape
+
+    for i in range(nth):
+        ys = (ys[1:] - ys[:-1]) / (xs[1:] - xs[:-1])
+        xs = (xs[1:] + xs[:-1]) / 2
+    return xs, ys
+
 
 num1 = 3
 num2 = 4
-which = "xz"
+direction = "xy"
 alpha = 0.5
 betas = np.arange(0, 2, 0.01)
 
-solver = JKGModelEDSolver(num1, num2, which=which)
+solver = JKGModelEDSolver(num1, num2, direction=direction)
 for beta in betas:
-    solver.GS(alpha=alpha, beta=beta)
+    solver.EigenStates(alpha=alpha, beta=beta)
 
 gses = []
 es_path = "data/QuantumSpinModel/ES/"
@@ -30,7 +58,7 @@ es_name_temp = "ES_" + solver.identity + "_alpha={0:.4f}_beta={1:.4f}.npz"
 for beta in betas:
     es_full_name = es_path + es_name_temp.format(alpha, beta)
     with np.load(es_full_name) as ld:
-        gses.append(np.sort(ld["values"])[0])
+        gses.append(ld["values"][0])
 gses = np.array(gses, dtype=np.float64)
 d2betas, d2gses = derivation(betas, gses, nth=2)
 
@@ -53,9 +81,6 @@ ax_d2gses.set_ylabel(
     r"$E^{''}$", rotation=0, fontsize="xx-large", color=color_d2gses
 )
 ax_d2gses.tick_params("y", colors=color_d2gses)
-ax_d2gses.grid(ls="dashed", axis="y", color=color_d2gses)
 plt.get_current_fig_manager().window.showMaximized()
 plt.show()
 plt.close("all")
-
-logging.info("Program stop running")
