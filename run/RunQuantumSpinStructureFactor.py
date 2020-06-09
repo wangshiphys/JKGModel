@@ -1,87 +1,93 @@
-import logging
-import sys
+from pathlib import Path
 from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from HamiltonianPy import lattice_generator, TRIANGLE_CELL_KS
+from HamiltonianPy import TRIANGLE_CELL_KS
 
 from StructureFactor import QuantumSpinStructureFactor
+from utilities import TriangularLattice
 
+print("Program start running")
+log_msg = "SMSF for alpha={0:.4f}, beta={1:.4f}, direction={2}: dt={3:.3f}s"
 
-logging.basicConfig(
-    level=logging.INFO, stream=sys.stdout,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
-logging.info("Program start running")
-LOG_MSG = "SFs for alpha=%.4f, beta=%.4f: dt=%.4fs"
+ES_DATA_PATH = "data/QuantumSpinModel/ES/"
+SF_DATA_PATH = "data/QuantumSpinModel/SMSF/"
+Path(SF_DATA_PATH).mkdir(exist_ok=True, parents=True)
 
-# GS_DATA_PATH = "data/QuantumSpinModel/GS/"
-GS_DATA_PATH = "E:/JKGModel/data/QuantumSpinModel/GS/"
-# GS_DATA_PATH = "C:/Users/swang/Desktop/Eigenstates/"
-GS_DATA_NAME_TEMP = "GS_numx={0}_numy={1}_alpha={2:.4f}_beta={3:.4f}.npz"
-SF_DATA_NAME_TEMP = "SF_numx={0}_numy={1}_alpha={2:.4f}_beta={3:.4f}.npz"
-################################################################################
+lattice_id = "num1={0}_num2={1}_direction={2}"
+ES_DATA_NAME_TEMP = "ES_" + lattice_id + "_alpha={3:.4f}_beta={4:.4f}.npz"
+SF_DATA_NAME_TEMP = "SF_" + lattice_id + "_alpha={3:.4f}_beta={4:.4f}.npz"
 
-# Prepare k-points and boundary of first Brillouin Zone
-numx = 4
-numy = 6
-cluster = lattice_generator("triangle", num0=numx, num1=numy)
-bs = 4 * np.pi * np.identity(2) / np.sqrt(3)
 step = 0.01
-kx_ratios = np.arange(-0.7, 0.7 + step, step)
-ky_ratios = np.arange(-0.7 + step, 0.7, step)
+ratios = np.arange(-0.7, 0.7 + step, step)
 kpoints = np.matmul(
-    np.stack(np.meshgrid(kx_ratios, ky_ratios, indexing="ij"), axis=-1), bs
+    np.stack(np.meshgrid(ratios, ratios, indexing="ij"), axis=-1),
+    4 * np.pi * np.identity(2) / np.sqrt(3)
 )
 BZBoundary = TRIANGLE_CELL_KS[[*range(6), 0]]
 
-# Load ground state data
-alpha = 0.70
-beta = 0.66
-gs_data_name = GS_DATA_NAME_TEMP.format(numx, numy, alpha, beta)
-with np.load(GS_DATA_PATH + gs_data_name) as ld:
-    ket = ld["ket"][:, 0]
+num1 = 4
+num2 = 6
+alpha = 0.50
+beta = 0.00
 
-# Calculate and save static structure factors
-t0 = time()
-factors = QuantumSpinStructureFactor(kpoints, cluster.points, ket)
-assert np.all(np.abs(factors.imag) < 1E-12)
-sf_data_name = SF_DATA_NAME_TEMP.format(numx, numy, alpha, beta)
+total_factors = 0.0
+for direction in ("xy", "xz", "yx", "yz", "zx", "zy"):
+    points = TriangularLattice(num1, num2, direction).cluster.points
+    es_data_name = ES_DATA_NAME_TEMP.format(num1, num2, direction, alpha, beta)
+    sf_data_name = SF_DATA_NAME_TEMP.format(num1, num2, direction, alpha, beta)
+
+    with np.load(ES_DATA_PATH + es_data_name) as ld:
+        gs_ket = ld["vectors"][:, 0]
+
+    t0 = time()
+    factors = QuantumSpinStructureFactor(kpoints, points, gs_ket)
+    assert np.all(np.abs(factors.imag) < 1E-12)
+    factors = factors.real
+    np.savez(
+        SF_DATA_PATH + sf_data_name,
+        size=[num1, num2], direction=[direction], parameters=[alpha, beta],
+        kpoints=kpoints, BZBoundary=BZBoundary, factors=factors,
+    )
+    t1 = time()
+    total_factors += factors
+    print(log_msg.format(alpha, beta, direction, t1 - t0))
+
+avg_factors = total_factors / 6
 np.savez(
-    sf_data_name, size=[numx, numy], parameters=[alpha, beta],
-    kpoints=kpoints, BZBoundary=BZBoundary, factors=factors.real
+    SF_DATA_PATH + SF_DATA_NAME_TEMP.format(num1, num2, "avg", alpha, beta),
+    size=[num1, num2], direction=["avg"], parameters=[alpha, beta],
+    kpoints=kpoints, BZBoundary=BZBoundary, factors=factors,
 )
-t1 = time()
-logging.info(LOG_MSG, alpha, beta, t1 - t0)
 
-# Plot the static structure factors
-fig, ax = plt.subplots(num=sf_data_name[:-4])
+name = SF_DATA_NAME_TEMP.format(num1, num2, "avg", alpha, beta)[:-4]
+fig, ax = plt.subplots(num=name)
 im = ax.pcolormesh(
-    kpoints[:, :, 0], kpoints[:, :, 1], factors.real, zorder=0,
-    cmap="Reds", shading="gouraud",
+    kpoints[:, :, 0], kpoints[:, :, 1], avg_factors, zorder=0,
+    cmap="magma", shading="gouraud",
 )
 fig.colorbar(im, ax=ax)
 ax.plot(
     BZBoundary[:, 0], BZBoundary[:, 1], zorder=1,
     lw=3, ls="dashed", color="tab:blue", alpha=1.0,
 )
-ax.set_title(
-    r"$\alpha={0:.4f}\pi,\beta={1:.4f}\pi$".format(alpha, beta),
-    fontsize="xx-large",
-)
-ticks = np.array([-1, 0, 1], dtype=np.int64)
+title = r"$\alpha={0:.4f}\pi,\beta={1:.4f}\pi$".format(alpha, beta)
+ax.set_title(title, fontsize="xx-large")
+
+ticks = np.array([-1, 0, 1])
 ax.set_xticks(ticks * np.pi)
 ax.set_yticks(ticks * np.pi)
 ax.set_xticklabels(["{0}".format(tick) for tick in ticks])
 ax.set_yticklabels(["{0}".format(tick) for tick in ticks])
-ax.set_xlabel(r"$k_x/\pi$", fontsize="large")
-ax.set_ylabel(r"$k_y/\pi$", fontsize="large")
+ax.set_xlabel(r"$k_x/\pi$", fontsize="x-large")
+ax.set_ylabel(r"$k_y/\pi$", fontsize="x-large")
 ax.grid(True, ls="dashed", color="gray")
 ax.set_aspect("equal")
 
 plt.get_current_fig_manager().window.showMaximized()
+plt.tight_layout()
 plt.show()
 plt.close("all")
 
-logging.info("Program stop running")
+print("Program stop running")
