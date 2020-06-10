@@ -58,7 +58,7 @@ avg_factors = total_factors / 6
 np.savez(
     SF_DATA_PATH + SF_DATA_NAME_TEMP.format(num1, num2, "avg", alpha, beta),
     size=[num1, num2], direction=["avg"], parameters=[alpha, beta],
-    kpoints=kpoints, BZBoundary=BZBoundary, factors=factors,
+    kpoints=kpoints, BZBoundary=BZBoundary, factors=avg_factors,
 )
 
 name = SF_DATA_NAME_TEMP.format(num1, num2, "avg", alpha, beta)[:-4]
