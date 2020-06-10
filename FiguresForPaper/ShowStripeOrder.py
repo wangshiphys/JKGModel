@@ -1,3 +1,8 @@
+"""
+Demonstrate stripe orders.
+"""
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 from HamiltonianPy import lattice_generator, Lattice
@@ -98,17 +103,16 @@ anchor_y = 3.00
 for x_delta, tag in zip(x_deltas, ["(a)", "(b)", "(c)"]):
     ax.text(
         anchor_x + x_delta, anchor_y, tag,
-        fontsize="large", ha="left", va="top"
+        fontsize="xx-large", ha="left", va="top"
     )
 
+ax.set_axis_off()
+ax.set_aspect("equal")
 ax.set_xlim(-0.2, 12.8)
 ax.set_ylim(-0.4, 3.0)
-ax.set_aspect("equal")
-ax.set_axis_off()
 fig.set_size_inches(18, 5.2)
+plt.tight_layout()
 plt.show()
 # fig.savefig("figures/StripeOrder.pdf", dpi=200)
 # fig.savefig("figures/StripeOrder.png", dpi=200)
-# fig.savefig("figures/StripeOrder.jpg", dpi=200)
-# fig.savefig("figures/StripeOrder.eps", dpi=200)
 plt.close("all")
