@@ -1,8 +1,12 @@
+"""
+Draw the triangular lattice composed of edge-sharing octahedrons.
+"""
+
+
 import matplotlib.pyplot as plt
 import numpy as np
-
-from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 
 
 def Rotation2D(theta=0.0, deg=True):
@@ -73,7 +77,7 @@ points_top = np.dot(Rotation2D(theta), POINTS_TOP.T).T
 LW = 2
 MS = 10
 FACECOLOR = "orangered"
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(num="EdgeSharingOctahedrons")
 
 # Draw points on the bottom layer
 ax.plot(
@@ -191,9 +195,9 @@ ax.text(
 ax.set_aspect("equal")
 ax.set_axis_off()
 fig.set_size_inches(8, 8)
+plt.tight_layout()
 plt.show()
 print(fig.get_size_inches())
-# fig.savefig("figures/EdgeSharingOctahedral.pdf", dpi=200)
-# fig.savefig("figures/EdgeSharingOctahedral.png", dpi=200)
-# fig.savefig("figures/EdgeSharingOctahedral.jpg", dpi=200)
+# fig.savefig("figures/EdgeSharingOctahedrons.pdf", dpi=200)
+# fig.savefig("figures/EdgeSharingOctahedrons.png", dpi=200)
 plt.close("all")
