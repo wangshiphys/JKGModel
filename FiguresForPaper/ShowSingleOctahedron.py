@@ -1,8 +1,12 @@
+"""
+Draw single octahedron.
+"""
+
+
 import matplotlib.pyplot as plt
 import numpy as np
-
-from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 
 
 def Rotation2D(theta=0.0, deg=True):
@@ -56,7 +60,7 @@ arrows = points_top - points_middle[0]
 LW = 2
 MS = 10
 FACECOLOR = "orangered"
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(num="SingleOctahedron")
 
 # Draw points on the bottom layer
 ax.plot(
@@ -139,25 +143,25 @@ ax.quiver(
     scale=1.02, width=0.02, headwidth=4, headlength=8, headaxislength=6,
 )
 
-scale = 1.25
-arrow_names = [r"$S^x$", r"$S^y$", r"$S^z$"]
+scale = 1.15
+arrow_names = ["x", "y", "z"]
 for arrow, name in zip(arrows, arrow_names):
     x, y = points_middle[0] + arrow * scale
     ax.text(x, y, name, ha="center", va="center", fontsize="xx-large")
 
 ax.text(
-    0, 1.0, "(c)",
+    0, 1.0, "(b)",
     fontsize="xx-large", ha="left", va="top", transform=ax.transAxes
 )
 
 ax.set_aspect("equal")
-ax.set_xlim(-0.85, 0.65)
-ax.set_ylim(-0.69, 0.71)
+ax.set_xlim(-0.75, 0.65)
+ax.set_ylim(-0.65, 0.65)
 ax.set_axis_off()
 fig.set_size_inches(4, 4)
+plt.tight_layout()
 plt.show()
 print(fig.get_size_inches())
-# fig.savefig("figures/SingleOctahedral.pdf", dpi=200)
-# fig.savefig("figures/SingleOctahedral.png", dpi=200)
-# fig.savefig("figures/SingleOctahedral.jpg", dpi=200)
+# fig.savefig("figures/SingleOctahedron.pdf", dpi=200)
+# fig.savefig("figures/SingleOctahedron.png", dpi=200)
 plt.close("all")
