@@ -1,50 +1,75 @@
+"""
+Show the static magnetic structure factors (SMSF) for some representative model
+parameters.
+"""
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-NUMX = 4
-NUMY = 6
-DATA_PATH = "data/"
-DATA_NAME_TEMP = "SF_numx={0}_numy={1}_alpha={2:.4f}_beta={3:.4f}.npz"
+BZLW = 5
+COLORMAP = "hot_r"
+BZCOLOR = "tab:green"
+SF_DATA_NAME_TEMP = "data/SF_num1=4_num2=6_direction=avg_" \
+                    "alpha={0:.4f}_beta={1:.4f}.npz"
+
+params = [
+    (0.50, 0.00), (0.00, 0.00), (1.00, 0.00),
+    (0.70, 0.66), (0.30, 0.25), (0.05, 0.10),
+]
+sub_fig_tags = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
+titles = [
+    r"$J=\Gamma=0,K=1$",
+    r"$J=K=0,\Gamma=1$",
+    r"$J=K=0,\Gamma=-1$",
+    r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(*params[3]),
+    r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(*params[4]),
+    r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(*params[5]),
+]
 
 fig, axes = plt.subplots(
     nrows=2, ncols=3, sharex="all", sharey="all", num="StructureFactors",
 )
-sub_fig_tags = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
-params = [
-    (0.00, 0.00), (1.00, 0.00), (0.50, 0.00),
-    (0.30, 0.25), (0.70, 0.66), (0.05, 0.02),
-]
-for index, (tag, (alpha, beta)) in enumerate(zip(sub_fig_tags, params)):
-    data_file_name = DATA_PATH + DATA_NAME_TEMP.format(NUMX, NUMY, alpha, beta)
-    with np.load(data_file_name) as ld:
-        kpoints = ld["kpoints"]
-        factors = ld["factors"]
+for index in range(len(params)):
+    title = titles[index]
+    alpha, beta = params[index]
+    ax = axes[divmod(index, 3)]
+    sub_fig_tag = sub_fig_tags[index]
+
+    sf_data_name = SF_DATA_NAME_TEMP.format(alpha, beta)
+    with np.load(sf_data_name) as ld:
         BZBoundary = ld["BZBoundary"]
+        factors = ld["factors"][0::5, 0::5]
+        kpoints = ld["kpoints"][0::5, 0::5, :]
 
-    i, j = divmod(index, 3)
-    im_ij = axes[i, j].pcolormesh(
-        kpoints[:, :, 0], kpoints[:, :, 1], factors, zorder=0,
-        cmap="Reds", shading="gouraud",
+    im = ax.pcolormesh(
+        kpoints[:, :, 0], kpoints[:, :, 1], factors,
+        cmap=COLORMAP, shading="gouraud", zorder=0,
     )
-    fig.colorbar(im_ij, ax=axes[i, j], format="%.1f")
-    axes[i, j].plot(
+    im.set_edgecolor("face")
+
+    colorbar = fig.colorbar(im, ax=ax, pad=0.01, format="%.1f")
+    colorbar.ax.tick_params(axis="y", labelsize="large")
+
+    ax.plot(
         BZBoundary[:, 0], BZBoundary[:, 1], zorder=1,
-        lw=3, ls="dashed", color="tab:blue", alpha=1.0,
-    )
-    axes[i, j].text(
-        0.0, 0.96, tag,
-        fontsize="large", ha="left", va="top",
-        transform=axes[i, j].transAxes
+        ls="dashed", lw=BZLW, color=BZCOLOR, alpha=1.0,
     )
 
+    ax.text(
+        0.0, 1.0, sub_fig_tag,
+        fontsize="xx-large", ha="left", va="bottom", transform=ax.transAxes,
+    )
+    ax.set_title(title, fontsize="xx-large", loc="center")
     ticks = np.array([-1, 0, 1], dtype=np.int64)
-    axes[i, j].set_xticks(ticks * np.pi)
-    axes[i, j].set_yticks(ticks * np.pi)
-    axes[i, j].set_xticklabels(["{0}".format(tick) for tick in ticks])
-    axes[i, j].set_yticklabels(["{0}".format(tick) for tick in ticks])
-    axes[i, j].grid(True, ls="dashed", color="gray")
-    axes[i, j].set_aspect("equal")
+    tick_labels = ["{0}".format(tick) for tick in ticks]
+    ax.set_xticks(ticks * np.pi)
+    ax.set_yticks(ticks * np.pi)
+    ax.set_xticklabels(tick_labels, fontsize="large")
+    ax.set_yticklabels(tick_labels, fontsize="large")
+    ax.grid(True, ls="dashed", color="gray")
+    ax.set_aspect("equal")
 
 axes[1, 0].set_xlabel(r"$k_x/\pi$", fontsize="large")
 axes[1, 1].set_xlabel(r"$k_x/\pi$", fontsize="large")
@@ -52,20 +77,8 @@ axes[1, 2].set_xlabel(r"$k_x/\pi$", fontsize="large")
 axes[0, 0].set_ylabel(r"$k_y/\pi$", fontsize="large")
 axes[1, 0].set_ylabel(r"$k_y/\pi$", fontsize="large")
 
-titles = [r"$J=K=0,\Gamma=1$", r"$J=K=0,\Gamma=-1$", r"$J=\Gamma=0,K=1$"]
-for j, title in enumerate(titles):
-    axes[0, j].set_title(title, fontsize="large")
-tmp = [(0.30, 0.25), (0.70, 0.66), (0.05, 0.02)]
-for j, (alpha, beta) in enumerate(tmp):
-    axes[1, j].set_title(
-        r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(alpha, beta),
-        fontsize="large",
-    )
-
-fig.set_size_inches(18, 9)
+plt.get_current_fig_manager().window.showMaximized()
 plt.show()
-print(fig.get_size_inches())
-# fig.savefig("figures/StructureFactors.pdf", dpi=100)
-# fig.savefig("figures/StructureFactors.png", dpi=100)
-# fig.savefig("figures/StructureFactors.jpg", dpi=100)
+# fig.savefig("figures/StructureFactors.pdf", dpi=100, transparent=True)
+# fig.savefig("figures/StructureFactors.png", dpi=100, transparent=True)
 plt.close("all")
