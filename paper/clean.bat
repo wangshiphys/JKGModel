@@ -1,0 +1,9 @@
+del paper.aux
+del paper.bbl
+del paper.blg
+del paper.fdb_latexmk
+del paper.fls
+del paper.log
+del paper.out
+del paper.synctex.gz
+del paperNotes.bib
