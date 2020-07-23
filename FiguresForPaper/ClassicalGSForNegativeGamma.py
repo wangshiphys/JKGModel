@@ -5,9 +5,9 @@ Classical ground state spin configurations for pure negative Gamma model.
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from HamiltonianPy import Lattice
 
+from FontSize import *
 
 SQRT3 = np.sqrt(3)
 POINTS = np.array(
@@ -92,7 +92,7 @@ for index in range(4):
 
     ax.text(
         1.0, 1.5 * SQRT3, sub_fig_tag,
-        ha="center", va="center", fontsize="xx-large",
+        ha="center", va="center", fontsize=LARGE,
     )
 
     ax.set_axis_off()
@@ -104,6 +104,5 @@ fig.subplots_adjust(
 plt.get_current_fig_manager().window.showMaximized()
 
 plt.show()
-# fig.savefig("figures/SpinConfigForNegativeGamma.pdf", dpi=200)
-# fig.savefig("figures/SpinConfigForNegativeGamma.png", dpi=200)
+fig.savefig("figures/SpinConfigForNegativeGamma.pdf", transparent=True)
 plt.close("all")
