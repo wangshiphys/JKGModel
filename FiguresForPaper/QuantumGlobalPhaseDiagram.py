@@ -6,6 +6,7 @@ Quantum global phase diagram of the triangular lattice J-K-Gamma model.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from FontSize import *
 from QuantumPhaseDiagramDataBase import *
 
 ALPHA_STEP = HEIGHT = 0.005
@@ -63,12 +64,10 @@ for alpha in np.arange(1.000, 0.495, -ALPHA_STEP):
 # Set the properties of ax_north
 ax_north.set_yticks(yticks)
 ax_north.set_xticks(xticks * np.pi)
-ax_north.set_xticklabels(
-    xtick_labels, ha="center", va="center", fontsize="large",
-)
+ax_north.set_xticklabels(xtick_labels, ha="center", va="center", fontsize=SMALL)
 ax_north.set_yticklabels(
     [r"$\alpha={0:.0f}^\circ$".format(alpha * 180) for alpha in yticks],
-    ha="center", va="center", fontsize="large", x=1.15*np.pi,
+    ha="center", va="center", fontsize=SMALL, x=1.15 * np.pi,
 )
 ax_north.annotate(
     "", xy=(0.40 * np.pi, 0.52), xytext=(0.30 * np.pi, 0.52),
@@ -76,21 +75,19 @@ ax_north.annotate(
 )
 ax_north.text(
     0.35 * np.pi, 0.52, r"$\beta$",
-    ha="center", va="bottom", fontsize="large", rotation=-15,
+    ha="center", va="bottom", fontsize=SMALL, rotation=-15,
 )
 ax_north.spines["polar"].set_visible(False)
 ax_north.grid(color="gray", ls="dashed")
-ax_north.set_title(r"$\Gamma \geq 0$", fontsize="xx-large")
+ax_north.set_title(r"$\Gamma \geq 0$", fontsize=LARGE)
 
 # Set the properties of ax_south
 ax_south.set_yticks(yticks)
 ax_south.set_xticks(xticks * np.pi)
-ax_south.set_xticklabels(
-    xtick_labels, ha="center", va="center", fontsize="large",
-)
+ax_south.set_xticklabels(xtick_labels, ha="center", va="center", fontsize=SMALL)
 ax_south.set_yticklabels(
     [r"$\alpha={0:.0f}^\circ$".format(alpha * 180) for alpha in (1 - yticks)],
-    ha="center", va="center", fontsize="large", x=1.15*np.pi,
+    ha="center", va="center", fontsize=SMALL, x=1.15 * np.pi,
 )
 ax_south.annotate(
     "", xy=(0.40 * np.pi, 0.52), xytext=(0.30 * np.pi, 0.52),
@@ -98,11 +95,11 @@ ax_south.annotate(
 )
 ax_south.text(
     0.35 * np.pi, 0.52, r"$\beta$",
-    ha="center", va="bottom", fontsize="large", rotation=-15,
+    ha="center", va="bottom", fontsize=SMALL, rotation=-15,
 )
 ax_south.spines["polar"].set_visible(False)
 ax_south.grid(color="gray", ls="dashed")
-ax_south.set_title(r"$\Gamma \leq 0$", fontsize="xx-large")
+ax_south.set_title(r"$\Gamma \leq 0$", fontsize=LARGE)
 
 # Annotate the different phases
 phase_annotate_north = [
@@ -113,17 +110,25 @@ phase_annotate_north = [
     (0.45 * np.pi, 0.045, "QSL"),
 ]
 for annotate in phase_annotate_north:
-    ax_north.text(*annotate, ha="center", va="center", fontsize="xx-large",)
+    ax_north.text(*annotate, ha="center", va="center", fontsize=LARGE)
 
 ax_north.annotate(
     "Stripe-D", xy=(0.07 * np.pi, 0.50), xytext=(0.10 * np.pi, 0.60),
-    ha="center", va="bottom", fontsize="xx-large",
-    arrowprops={"arrowstyle": "->", "connectionstyle": "angle3"},
+    ha="center", va="bottom", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["StripeD"],
+    },
 )
 ax_north.annotate(
     "Dual Neel", xy=(1.85 * np.pi, 0.50), xytext=(1.82 * np.pi, 0.62),
-    ha="center", va="bottom", fontsize="xx-large",
-    arrowprops={"arrowstyle": "->", "connectionstyle": "angle3"},
+    ha="center", va="bottom", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["DualNeel"],
+    },
 )
 
 phase_annotate_south = [
@@ -131,23 +136,31 @@ phase_annotate_south = [
     (1.50 * np.pi, 0.35, "FM-C"),
 ]
 for annotate in phase_annotate_south:
-    ax_south.text(*annotate, ha="center", va="center", fontsize="xx-large",)
+    ax_south.text(*annotate, ha="center", va="center", fontsize=LARGE)
 
 ax_south.annotate(
     "Stripe-A", xy=(0.80 * np.pi, 0.50), xytext=(0.80 * np.pi, 0.60),
-    ha="center", va="bottom", fontsize="xx-large",
-    arrowprops={"arrowstyle": "->", "connectionstyle": "angle3"},
-)
-ax_south.annotate(
-    "FM-B", xy=(1.10 * np.pi, 0.50), xytext=(1.12 * np.pi, 0.60),
-    ha="center", va="top", fontsize="xx-large",
-    arrowprops={"arrowstyle": "->", "connectionstyle": "angle3"},
+    ha="center", va="bottom", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["StripeA"],
+    },
 )
 
-fig.text(0, 1, "(a)", fontsize="xx-large", ha="left", va="top")
+ax_south.annotate(
+    "FM-B", xy=(1.10 * np.pi, 0.50), xytext=(1.12 * np.pi, 0.60),
+    ha="center", va="top", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["FMB"],
+    },
+)
+
+fig.text(0, 1, "(a)", fontsize=LARGE, ha="left", va="top")
 fig.set_size_inches(18, 9)
 plt.tight_layout()
 plt.show()
-# fig.savefig("figures/QuantumGlobalPhaseDiagram.pdf", dpi=200)
-# fig.savefig("figures/QuantumGlobalPhaseDiagram.png", dpi=200)
+fig.savefig("figures/QuantumGlobalPhaseDiagram.pdf", transparent=True)
 plt.close("all")
