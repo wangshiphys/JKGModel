@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from HamiltonianPy import lattice_generator, Lattice
 
+from FontSize import *
+
 
 def Show2DVectors(ax, xs, ys, vectors, colors):
     ax.quiver(
@@ -103,7 +105,7 @@ anchor_y = 3.00
 for x_delta, tag in zip(x_deltas, ["(a)", "(b)", "(c)"]):
     ax.text(
         anchor_x + x_delta, anchor_y, tag,
-        fontsize="xx-large", ha="left", va="top"
+        fontsize=LARGE, ha="left", va="top"
     )
 
 ax.set_axis_off()
@@ -113,6 +115,5 @@ ax.set_ylim(-0.4, 3.0)
 fig.set_size_inches(18, 5.2)
 plt.tight_layout()
 plt.show()
-# fig.savefig("figures/StripeOrder.pdf", dpi=200)
-# fig.savefig("figures/StripeOrder.png", dpi=200)
+fig.savefig("figures/StripeOrder.pdf", transparent=True)
 plt.close("all")
