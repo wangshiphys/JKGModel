@@ -8,6 +8,8 @@ import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 
+from FontSize import *
+
 
 def Rotation2D(theta=0.0, deg=True):
     """
@@ -57,8 +59,8 @@ points_middle = np.dot(Rotation2D(theta), POINTS_MIDDLE.T).T
 points_top = np.dot(Rotation2D(theta), POINTS_TOP.T).T
 arrows = points_top - points_middle[0]
 
-LW = 2
-MS = 10
+LW = 3
+MS = 16
 FACECOLOR = "orangered"
 fig, ax = plt.subplots(num="SingleOctahedron")
 
@@ -70,7 +72,7 @@ ax.plot(
 # Draw points on the middle layer
 ax.plot(
     points_middle[:, 0], points_middle[:, 1], zorder=2,
-    ls="", marker="o", ms=2 * MS, color="black", alpha=1.0,
+    ls="", marker="o", ms=1.5*MS, color="black", alpha=1.0,
 )
 # Draw points on the top layer
 ax.plot(
@@ -147,21 +149,19 @@ scale = 1.15
 arrow_names = ["x", "y", "z"]
 for arrow, name in zip(arrows, arrow_names):
     x, y = points_middle[0] + arrow * scale
-    ax.text(x, y, name, ha="center", va="center", fontsize="xx-large")
+    ax.text(x, y, name, ha="center", va="center", fontsize=LARGE)
 
 ax.text(
     0, 1.0, "(b)",
-    fontsize="xx-large", ha="left", va="top", transform=ax.transAxes
+    fontsize=LARGE, ha="left", va="top", transform=ax.transAxes
 )
 
+ax.set_axis_off()
 ax.set_aspect("equal")
 ax.set_xlim(-0.75, 0.65)
 ax.set_ylim(-0.65, 0.65)
-ax.set_axis_off()
 fig.set_size_inches(4, 4)
 plt.tight_layout()
 plt.show()
-print(fig.get_size_inches())
-# fig.savefig("figures/SingleOctahedron.pdf", dpi=200)
-# fig.savefig("figures/SingleOctahedron.png", dpi=200)
+fig.savefig("figures/SingleOctahedron.pdf", transparent=True)
 plt.close("all")
