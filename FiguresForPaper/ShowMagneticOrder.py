@@ -2,9 +2,12 @@
 Demonstrate Stripe, 120-degree Neel and Dual-Neel magnetic orders.
 """
 
+
 import matplotlib.pyplot as plt
 import numpy as np
 from HamiltonianPy import lattice_generator, Lattice
+
+from FontSize import *
 
 
 def Show2DVectors(ax, xs, ys, vectors, colors):
@@ -193,8 +196,7 @@ anchor_x = 0.75
 anchor_y = 3.00
 for x_delta, tag in zip(x_deltas, ["(b)", "(c)", "(d)", "(e)", "(f)"]):
     ax.text(
-        anchor_x + x_delta, anchor_y, tag,
-        fontsize="xx-large", ha="left", va="top"
+        anchor_x + x_delta, anchor_y, tag, fontsize=LARGE, ha="left", va="top"
     )
 
 ax.set_axis_off()
@@ -204,7 +206,5 @@ ax.set_ylim(-0.5, 3.20)
 fig.set_size_inches(18, 3.1)
 plt.tight_layout()
 plt.show()
-print(fig.get_size_inches())
-# fig.savefig("figures/MagneticOrder.pdf", dpi=200)
-# fig.savefig("figures/MagneticOrder.png", dpi=200)
+fig.savefig("figures/MagneticOrder.pdf", transparent=True)
 plt.close("all")
