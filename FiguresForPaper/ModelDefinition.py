@@ -6,9 +6,10 @@ Demonstrate the J-K-Gamma model on triangular lattice.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from FontSize import *
 
-LW = 5
-MS = 20
+LW = 6
+MS = 22
 
 point0 = np.array([0.0, 0.0])
 point1 = np.array([1.0, 0.0])
@@ -60,25 +61,25 @@ for index, point in zip(
 ):
     ax.text(
         point[0], point[1], str(index),
-        fontsize="xx-large", ha="center", va="center", color="black",
+        fontsize=LARGE, ha="center", va="center", color="black",
     )
 
 ax.text(
     -0.50, 0.0, "x",
-    fontsize="xx-large", ha="center", va="bottom", color="tab:red",
+    fontsize=LARGE, ha="center", va="bottom", color="tab:red",
 )
 ax.text(
     0.25, -np.sqrt(3)/4, "y",
-    fontsize="xx-large", ha="left", va="bottom", color="tab:green",
+    fontsize=LARGE, ha="left", va="bottom", color="tab:green",
 )
 ax.text(
     0.25, np.sqrt(3)/4, "z",
-    fontsize="xx-large", ha="left", va="top", color="tab:blue",
+    fontsize=LARGE, ha="left", va="top", color="tab:blue",
 )
 
 ax.text(
     0, 1.0, "(c)",
-    fontsize="xx-large", ha="left", va="top", transform=ax.transAxes
+    fontsize=LARGE, ha="left", va="top", transform=ax.transAxes
 )
 
 ax.set_axis_off()
@@ -88,6 +89,5 @@ ax.set_ylim(-1.0, 1.0)
 fig.set_size_inches(4, 4)
 plt.tight_layout()
 plt.show()
-# fig.savefig("figures/ModelDefinition.pdf", dpi=200)
-# fig.savefig("figures/ModelDefinition.png", dpi=200)
+fig.savefig("figures/ModelDefinition.pdf", transparent=True)
 plt.close("all")
