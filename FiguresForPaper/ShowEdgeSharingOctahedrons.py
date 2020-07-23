@@ -8,6 +8,8 @@ import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 
+from FontSize import *
+
 
 def Rotation2D(theta=0.0, deg=True):
     """
@@ -74,8 +76,8 @@ points_bottom = np.dot(Rotation2D(theta), POINTS_BOTTOM.T).T
 points_middle = np.dot(Rotation2D(theta), POINTS_MIDDLE.T).T
 points_top = np.dot(Rotation2D(theta), POINTS_TOP.T).T
 
-LW = 2
-MS = 10
+LW = 3
+MS = 16
 FACECOLOR = "orangered"
 fig, ax = plt.subplots(num="EdgeSharingOctahedrons")
 
@@ -87,7 +89,7 @@ ax.plot(
 # Draw points on the middle layer
 ax.plot(
     points_middle[:, 0], points_middle[:, 1], zorder=2,
-    ls="", marker="o", ms=2 * MS, color="black", alpha=1.0,
+    ls="", marker="o", ms=1.5*MS, color="black", alpha=1.0,
 )
 # Draw points on the top layer
 ax.plot(
@@ -119,7 +121,7 @@ for line in lines_middle:
     (x0, y0), (x1, y1) = points_middle[line]
     ax.plot(
         [x0, x1], [y0, y1], zorder=1,
-        ls="solid", lw=2 * LW, color="black", alpha=1.0,
+        ls="solid", lw=2*LW, color="black", alpha=1.0,
     )
 
 # Draw lines from bottom layer to top layer (thick solid lines)
@@ -189,15 +191,13 @@ ax.add_collection(collection)
 
 ax.text(
     0, 1.0, "(a)",
-    fontsize="xx-large", ha="left", va="top", transform=ax.transAxes
+    fontsize=LARGE, ha="left", va="top", transform=ax.transAxes
 )
 
-ax.set_aspect("equal")
 ax.set_axis_off()
+ax.set_aspect("equal")
 fig.set_size_inches(8, 8)
 plt.tight_layout()
 plt.show()
-print(fig.get_size_inches())
-# fig.savefig("figures/EdgeSharingOctahedrons.pdf", dpi=200)
-# fig.savefig("figures/EdgeSharingOctahedrons.png", dpi=200)
+fig.savefig("figures/EdgeSharingOctahedrons.pdf", transparent=True)
 plt.close("all")
