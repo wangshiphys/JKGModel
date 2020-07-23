@@ -6,6 +6,7 @@ Classical ground state spin configurations for pure positive Kitaev model.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from FontSize import *
 
 POINTS = np.dot(
     [[i, j] for i in range(6) for j in range(6)],
@@ -128,7 +129,7 @@ for index in range(6):
     )
     ax.text(
         1.0, 2.5 * np.sqrt(3), sub_fig_tag,
-        ha="center", va="center", fontsize="xx-large",
+        ha="center", va="center", fontsize=LARGE,
     )
     ax.set_axis_off()
     ax.set_aspect("equal")
@@ -138,6 +139,5 @@ fig.subplots_adjust(
 )
 plt.get_current_fig_manager().window.showMaximized()
 plt.show()
-fig.savefig("figures/SpinConfigForPositiveKitaev.pdf", dpi=200)
-fig.savefig("figures/SpinConfigForPositiveKitaev.png", dpi=200)
+fig.savefig("figures/SpinConfigForPositiveKitaev.pdf", transparent=True)
 plt.close("all")
