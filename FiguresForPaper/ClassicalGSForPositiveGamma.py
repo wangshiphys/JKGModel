@@ -2,6 +2,7 @@
 Show the disordered state for pure positive Gamma model.
 """
 
+
 import matplotlib.pyplot as plt
 import tables as tb
 
@@ -32,7 +33,5 @@ ax.set_aspect("equal")
 fig.set_size_inches(16, 9.26)
 plt.tight_layout()
 plt.show()
-print(fig.get_size_inches())
-# fig.savefig("figures/DisorderedState.pdf", dpi=200)
-# fig.savefig("figures/DisorderedState.png", dpi=200)
+fig.savefig("figures/SpinConfigForPositiveGamma.pdf", transparent=True)
 plt.close("all")
