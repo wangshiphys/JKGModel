@@ -7,6 +7,7 @@ ground states for some representative model parameters.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from FontSize import *
 
 INDICATOR_LW = 5
 INDICATOR_MS = 10
@@ -47,14 +48,14 @@ for index in range(len(params)):
     )
     im.set_edgecolor("face")
 
-    colorbar = fig.colorbar(im, ax=ax, pad=0.03)
+    colorbar = fig.colorbar(im, ax=ax, pad=0.04)
     colorbar_ticks = np.linspace(0.0, max_probs, 5, endpoint=True)
     colorbar.set_ticks(colorbar_ticks)
     colorbar.set_ticklabels(
         ["{0:.1f}".format(tick * 100) for tick in colorbar_ticks],
     )
-    colorbar.ax.tick_params(axis="y", labelsize="large")
-    colorbar.ax.set_title("P[%]", pad=8, fontsize="large")
+    colorbar.ax.tick_params(axis="y", labelsize=SMALL)
+    colorbar.ax.set_title("P[%]", pad=10, fontsize=SMALL)
 
     ax.set_aspect("equal")
     ax.set_ylim(0, 0.5 * np.pi)
@@ -66,11 +67,11 @@ for index in range(len(params)):
 
     ax.set_title(
         r"$\alpha={0:.2f}\pi,\beta={1:.2f}\pi$".format(alpha, beta),
-        fontsize="xx-large", pad=15,
+        fontsize=LARGE, pad=15,
     )
     ax.text(
         0.0, 1.125, sub_fig_tag,
-        fontsize="xx-large", ha="right", va="center", transform=ax.transAxes,
+        fontsize=LARGE, ha="right", va="center", transform=ax.transAxes,
     )
 
     ax.annotate(
@@ -81,7 +82,7 @@ for index in range(len(params)):
     )
     ax.text(
         0.25 * np.pi, 0.58 * np.pi, r"$\phi$",
-        ha="center", va="center", fontsize="large", rotation=-45,
+        ha="center", va="center", fontsize=SMALL, rotation=-45,
     )
 
 
@@ -93,13 +94,13 @@ for phi, ha, va in tmp:
     axes[0, 0].text(
         phi * np.pi, 0.51 * np.pi,
         r"${0:.0f}^\circ$".format(phi * 180),
-        fontsize="large", ha=ha, va=va,
+        fontsize=SMALL, ha=ha, va=va,
     )
 for theta in [0.00, 0.25, 0.50]:
     axes[0, 0].text(
         1.35 * np.pi, theta * np.pi,
         r"$\theta={0:.0f}^\circ$".format(theta * 180),
-        fontsize="large", ha="center", va="center", rotation=0,
+        fontsize=SMALL, ha="center", va="center", rotation=0,
     )
 
 axes[0, 0].plot(
@@ -136,9 +137,10 @@ for index, (sx, sy, sz) in zip([3, 4, 5], spin_vectors):
         color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
     )
 
+fig.subplots_adjust(
+    top=0.916, bottom=0.032, left=0.008, right=0.992, hspace=0.295, wspace=0.0
+)
 plt.get_current_fig_manager().window.showMaximized()
-plt.tight_layout()
 plt.show()
-# fig.savefig("figures/Probabilities.pdf", dpi=200)
-# fig.savefig("figures/Probabilities.png", dpi=200)
+fig.savefig("figures/Probabilities.pdf", transparent=True)
 plt.close("all")
