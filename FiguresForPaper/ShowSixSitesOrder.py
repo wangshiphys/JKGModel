@@ -11,15 +11,16 @@ from StructureFactor import ClassicalSpinStructureFactor
 
 POINTS = np.array(
     [
-        [0.0, 0.0], [1.0, 0.0], [0.5, np.sqrt(3) / 2],
-        [1.5, np.sqrt(3) / 2], [1.0, np.sqrt(3)], [2.0, np.sqrt(3)],
+        [0.0, 0.0], [0.5, 0.5 * np.sqrt(3)],
+        [1.0, 0.0], [1.5, 0.5 * np.sqrt(3)],
+        [2.0, 0.0], [2.5, 0.5 * np.sqrt(3)],
     ]
 )
-VECTORS = np.array([[1.5, -np.sqrt(3) / 2], [1.5, 1.5 * np.sqrt(3)]])
+VECTORS = np.array([[0.0, np.sqrt(3)], [3.0, 0.0]])
 CELL = HP.Lattice(POINTS, VECTORS)
 
-num0 = 7
-num1 = 4
+num0 = 5
+num1 = 3
 alpha = 0.30
 beta = 0.50
 
@@ -60,57 +61,68 @@ factors = factors.real
 vmin = np.min(factors)
 vmax = np.max(factors)
 
+angle = 4.705588762457632
+axis = (1.268856573288606, 5.486167665013975)
+Rotation = HP.RotationGeneral(axis, angle)
+
 fig_config, ax_config = plt.subplots(num="SpinConfig")
-ax_config.plot(
-    cluster.points[:, 0], cluster.points[:, 1],
-    color="k", ls="", marker="o", ms=5,
-)
+intra, inter = cluster.bonds(nth=1)
+for bond in intra:
+    (x0, y0), (x1, y1) = bond.endpoints
+    ax_config.plot(
+        [x0, x1], [y0, y1], ls="dashed", color="gray", lw=1.0, zorder=0
+    )
+
+cluster_vectors_temp = np.dot(cluster_vectors, Rotation.T)
 ax_config.quiver(
     cluster.points[:, 0], cluster.points[:, 1],
-    cluster_vectors[:, 0], cluster_vectors[:, 1],
-    units="xy", scale_units="xy", scale=1.45, width=0.08,
-    pivot="middle", color=0.5 * cluster_vectors + 0.5, clip_on=False,
+    cluster_vectors_temp[:, 0], cluster_vectors_temp[:, 1],
+    units="xy", scale_units="xy", scale=1.2, width=0.1, zorder=1,
+    pivot="middle", color=0.5 * cluster_vectors_temp + 0.5, clip_on=False,
+)
+ax_config.plot(
+    cluster.points[:, 0], cluster.points[:, 1],
+    color="k", ls="", marker="o", ms=5, zorder=2
 )
 ax_config.text(
-    0.02, 0.98, "(a)",
-    fontsize=LARGE, ha="left", va="top", transform=ax_config.transAxes,
+    0.00, 0.98, "(a)",
+    fontsize=SMALL, ha="center", va="top", transform=ax_config.transAxes,
 )
 ax_config.set_axis_off()
 ax_config.set_aspect("equal")
-fig_config.set_size_inches(9.9, 9.26)
+fig_config.set_size_inches(3.8, 3.0)
 fig_config.subplots_adjust(top=1, bottom=0, left=0, right=1)
 
 fig_ssf, ax_ssf = plt.subplots(num="SSF")
 im = ax_ssf.pcolormesh(
-    kpoints[:, :, 0], kpoints[:, :, 1], factors,
+    kpoints[0::3, 0::3, 0], kpoints[0::3, 0::3, 1], factors[0::3, 0::3],
     cmap="hot_r", shading="gouraud", zorder=0,
 )
 im.set_edgecolor("face")
 
-colorbar = fig_ssf.colorbar(im, ax=ax_ssf, pad=0.01, format="%.1f")
-colorbar.set_ticks(np.linspace(vmin, vmax, 5, endpoint=True))
+colorbar = fig_ssf.colorbar(im, ax=ax_ssf, pad=0.05, format="%.0f")
+colorbar.set_ticks(np.linspace(0, vmax, 5, endpoint=True))
 colorbar.ax.tick_params(axis="y", labelsize=SMALL)
 
 ax_ssf.plot(
     BZBoundary[:, 0], BZBoundary[:, 1], zorder=1,
-    lw=5, ls="dashed", color="tab:green", alpha=1.0,
+    lw=2.5, ls="dashed", color="tab:green", alpha=1.0,
 )
 ax_ssf.text(
-    0.02, 0.98, "(b)",
-    fontsize=LARGE, ha="left", va="top", transform=ax_ssf.transAxes,
+    0.00, 0.98, "(b)",
+    fontsize=SMALL, ha="right", va="top", transform=ax_ssf.transAxes,
 )
 ax_ssf.set_aspect("equal")
-# ax_ssf.grid(True, ls="dashed", color="gray")
 ticks = np.array([-1, 0, 1])
 ax_ssf.set_xticks(ticks * np.pi)
 ax_ssf.set_yticks(ticks * np.pi)
 tick_labels = ["{0}".format(tick) for tick in ticks]
 ax_ssf.set_xticklabels(tick_labels, fontsize=SMALL)
 ax_ssf.set_yticklabels(tick_labels, fontsize=SMALL)
-ax_ssf.set_xlabel(r"$k_x/\pi$", fontsize=LARGE)
-ax_ssf.set_ylabel(r"$k_y/\pi$", fontsize=LARGE)
-fig_ssf.set_size_inches(11.0, 9.26)
-fig_ssf.subplots_adjust(top=0.973, bottom=0.094, left=0.014, right=0.986)
+ax_ssf.set_xlabel(r"$k_x/\pi$", fontsize=SMALL)
+ax_ssf.set_ylabel(r"$k_y/\pi$", fontsize=SMALL)
+fig_ssf.set_size_inches(3.8, 3.0)
+fig_ssf.subplots_adjust(top=0.989, bottom=0.227, left=0, right=1)
 
 fig_path = "figures/SixSitesOrder/"
 Path(fig_path).mkdir(exist_ok=True, parents=True)
@@ -118,4 +130,6 @@ fig_ssf.savefig(fig_path + "SSF.pdf", transparent=True)
 fig_config.savefig(fig_path + "SpinConfig.pdf", transparent=True)
 
 plt.show()
+print(fig_config.get_size_inches())
+print(fig_ssf.get_size_inches())
 plt.close("all")
