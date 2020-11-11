@@ -17,22 +17,19 @@ INDICATOR_COLOR = "tab:green"
 PS_DATA_NAME_TEMP = "data/PS_num1=4_num2=6_direction=avg_" \
                     "alpha={0:.4f}_beta={1:.4f}.npz"
 
-params = [
-    (0.50, 0.75), (0.50, 0.00), (0.30, 1.30),
-    (0.70, 1.65), (0.70, 0.66), (0.30, 0.25),
-]
-sub_fig_tags = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
+sub_fig_tags = ["(a)", "(b)", "(c)", "(d)"]
+params = [(0.30, 1.30), (0.70, 1.65), (0.70, 0.66), (0.30, 0.00)]
 
 theta_ticks = np.array([0.0, 0.25, 0.50])
 phi_ticks = np.array([0.0, 0.5, 1.0, 1.5])
 
 fig, axes = plt.subplots(
-    nrows=2, ncols=3, subplot_kw={"polar": True}, num="Probabilities",
+    nrows=2, ncols=2, subplot_kw={"polar": True}, num="Probabilities",
 )
 
 for index in range(len(params)):
     alpha, beta = params[index]
-    ax = axes[divmod(index, 3)]
+    ax = axes[divmod(index, 2)]
     sub_fig_tag = sub_fig_tags[index]
 
     ps_data_name = PS_DATA_NAME_TEMP.format(alpha, beta)
@@ -48,7 +45,7 @@ for index in range(len(params)):
     )
     im.set_edgecolor("face")
 
-    colorbar = fig.colorbar(im, ax=ax, pad=0.04)
+    colorbar = fig.colorbar(im, ax=ax, pad=0.03)
     colorbar_ticks = np.linspace(0.0, max_probs, 5, endpoint=True)
     colorbar.set_ticks(colorbar_ticks)
     colorbar.set_ticklabels(
@@ -91,55 +88,49 @@ tmp = [
     (1.0, "right", "center"), (1.5, "center", "top"),
 ]
 for phi, ha, va in tmp:
-    axes[0, 0].text(
+    axes[0, 1].text(
         phi * np.pi, 0.51 * np.pi,
         r"${0:.0f}^\circ$".format(phi * 180),
         fontsize=SMALL, ha=ha, va=va,
     )
 for theta in [0.00, 0.25, 0.50]:
-    axes[0, 0].text(
-        1.35 * np.pi, theta * np.pi,
+    axes[0, 1].text(
+        1.3 * np.pi, theta * np.pi,
         r"$\theta={0:.0f}^\circ$".format(theta * 180),
         fontsize=SMALL, ha="center", va="center", rotation=0,
     )
 
-axes[0, 0].plot(
-    [0.0, np.pi], [0.5 * np.pi, 0.5 * np.pi], zorder=3,
-    ls="", marker="o", ms=INDICATOR_MS,
-    color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA, clip_on=False,
-)
-
-axes[0, 1].plot(
-    [0.5 * np.pi, 1.5 * np.pi], [0.5 * np.pi, 0.5 * np.pi], zorder=3,
-    ls="dashed", lw=INDICATOR_LW, color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
-)
-
 tmp = np.arctan2(1, -np.sin(phis) - np.cos(phis))
 indices = np.where(tmp <= 0.5 * np.pi)
-axes[0, 2].plot(
+axes[0, 0].plot(
     phis[indices], tmp[indices], zorder=3,
     ls="dashed", lw=INDICATOR_LW, color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
 )
 
-alpha, beta = params[4]
+axes[0, 1].plot(
+    np.arctan2(1, 1), np.arctan2(np.sqrt(2), 1),
+    zorder=3, ls="", marker="o", ms=INDICATOR_MS,
+    color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
+)
+
+alpha, beta = params[2]
 K = np.sin(alpha * np.pi) * np.cos(beta * np.pi)
 G = np.cos(alpha * np.pi)
 tmp = -(G + 2 * K - np.sqrt(9 * G * G - 4 * K * G + 4 * K * K)) / 4
 sy = sz = np.sqrt(G * G / (4 * tmp * (tmp + G) + 3 * G * G))
 sx = sy * (2 * tmp + G) / G
-
-spin_vectors = [(1, 1, 1), (sx, sy, sz), (0, -1, 1)]
-for index, (sx, sy, sz) in zip([3, 4, 5], spin_vectors):
-    ax = axes[divmod(index, 3)]
-    ax.plot(
-        np.arctan2(sy, sx), np.arctan2(np.sqrt(sx * sx + sy * sy), sz),
-        zorder=3, ls="", marker="o", ms=INDICATOR_MS,
-        color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
-    )
-
-fig.subplots_adjust(
-    top=0.916, bottom=0.032, left=0.008, right=0.992, hspace=0.295, wspace=0.0
+axes[1, 0].plot(
+    np.arctan2(sy, sx), np.arctan2(np.sqrt(sx * sx + sy * sy), sz),
+    zorder=3, ls="", marker="o", ms=INDICATOR_MS,
+    color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
 )
+
+axes[1, 1].plot(
+    np.arctan2(-1, 0), np.arctan2(1, 1),
+    zorder=3, ls="", marker="o", ms=INDICATOR_MS,
+    color=INDICATOR_COLOR, alpha=INDICATOR_ALPHA,
+)
+
 plt.get_current_fig_manager().window.showMaximized()
 plt.show()
 fig.savefig("figures/Probabilities.pdf", transparent=True)
