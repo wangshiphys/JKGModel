@@ -81,7 +81,7 @@ for index in range(4):
 
     for bond in INTRA_BONDS:
         (x0, y0), (x1, y1) = bond.endpoints
-        ax.plot([x0, x1], [y0, y1], ls="solid", lw=2, color="black", zorder=0)
+        ax.plot([x0, x1], [y0, y1], ls="dashed", lw=3, color="gray", zorder=0)
 
     colors = 0.5 * spin_vectors + 0.5
     ax.quiver(
@@ -89,10 +89,14 @@ for index in range(4):
         color=colors, units="xy", scale_units="xy", scale=1.45,
         width=0.06, pivot="mid", clip_on=False, zorder=1,
     )
+    ax.plot(
+        POINTS[:, 0], POINTS[:, 1],
+        color="k", ls="", marker="o", ms=15, zorder=2
+    )
 
     ax.text(
         1.0, 1.5 * SQRT3, sub_fig_tag,
-        ha="center", va="center", fontsize=LARGE,
+        ha="center", va="center", fontsize=XXLARGE+6,
     )
 
     ax.set_axis_off()
