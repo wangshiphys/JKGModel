@@ -4,8 +4,10 @@ Classical ground state spin configurations for pure positive Kitaev model.
 
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
 
+from scipy.spatial import cKDTree
 from FontSize import *
 
 POINTS = np.dot(
@@ -51,24 +53,33 @@ def StripeGenerator(config="StripeX"):
         chains = XCHAINS
         spin_up = [1.0, 0.0, 0.0]
         spin_down = [-1.0, 0.0, 0.0]
+        color_up = mcolors.to_rgba("tab:blue")
+        color_down = mcolors.to_rgba("tab:orange")
     elif config == "StripeY":
         chains = YCHAINS
         spin_up = [-0.5, np.sqrt(3) / 2, 0.0]
         spin_down = [0.5, -np.sqrt(3) / 2, 0.0]
+        color_up = mcolors.to_rgba("tab:green")
+        color_down = mcolors.to_rgba("tab:red")
     elif config == "StripeZ":
         chains = ZCHAINS
         spin_up = [0.5, np.sqrt(3) / 2, 0.0]
         spin_down = [-0.5, -np.sqrt(3) / 2, 0.0]
+        color_up = mcolors.to_rgba("tab:pink")
+        color_down = mcolors.to_rgba("tab:cyan")
     else:
         raise ValueError("Invalid `config`: {0}".format(config))
 
+    colors = np.empty((36, 4), dtype=np.float64)
     spin_vectors = np.empty((36, 3), dtype=np.float64)
     for index, chain in enumerate(chains):
         if index % 2 == 0:
+            colors[chain] = color_up
             spin_vectors[chain] = spin_up
         else:
+            colors[chain] = color_down
             spin_vectors[chain] = spin_down
-    return spin_vectors
+    return spin_vectors, colors
 
 
 def NematicGenerator(config="NematicX"):
@@ -76,60 +87,75 @@ def NematicGenerator(config="NematicX"):
         chains = XCHAINS
         spin_up = [1.0, 0.0, 0.0]
         spin_down = [-1.0, 0.0, 0.0]
+        color_up = mcolors.to_rgba("tab:blue")
+        color_down = mcolors.to_rgba("tab:orange")
     elif config == "NematicY":
         chains = YCHAINS
         spin_up = [-0.5, np.sqrt(3) / 2, 0.0]
         spin_down = [0.5, -np.sqrt(3) / 2, 0.0]
+        color_up = mcolors.to_rgba("tab:green")
+        color_down = mcolors.to_rgba("tab:red")
     elif config == "NematicZ":
         chains = ZCHAINS
         spin_up = [0.5, np.sqrt(3) / 2, 0.0]
         spin_down = [-0.5, -np.sqrt(3) / 2, 0.0]
+        color_up = mcolors.to_rgba("tab:pink")
+        color_down = mcolors.to_rgba("tab:cyan")
     else:
         raise ValueError("Invalid `config`: {0}".format(config))
 
+    colors = np.empty((36, 4), dtype=np.float64)
     spin_vectors = np.empty((36, 3), dtype=np.float64)
     for chain in chains:
         indices0 = chain[0::2]
         indices1 = chain[1::2]
         if np.random.random() < 0.5:
+            colors[indices0] = color_up
+            colors[indices1] = color_down
             spin_vectors[indices0] = spin_up
             spin_vectors[indices1] = spin_down
         else:
+            colors[indices1] = color_up
+            colors[indices0] = color_down
             spin_vectors[indices1] = spin_up
             spin_vectors[indices0] = spin_down
-    return spin_vectors
-
-
-vectors0 = StripeGenerator("StripeX")
-vectors1 = StripeGenerator("StripeY")
-vectors2 = StripeGenerator("StripeZ")
-vectors3 = NematicGenerator("NematicX")
-vectors4 = NematicGenerator("NematicY")
-vectors5 = NematicGenerator("NematicZ")
+    return spin_vectors, colors
 
 sub_fig_tags = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
-tmp = [vectors0, vectors1, vectors2, vectors3, vectors4, vectors5]
+tmp = [
+    StripeGenerator("StripeX"),
+    StripeGenerator("StripeY"),
+    StripeGenerator("StripeZ"),
+    NematicGenerator("NematicX"),
+    NematicGenerator("NematicY"),
+    NematicGenerator("NematicZ"),
+]
 
+pairs = cKDTree(POINTS).query_pairs(r=1.01)
 fig, axes = plt.subplots(nrows=2, ncols=3, sharex="all", sharey="all")
 for index in range(6):
-    spin_vectors = tmp[index]
+    spin_vectors, colors = tmp[index]
     ax = axes[divmod(index, 3)]
     sub_fig_tag = sub_fig_tags[index]
 
+    for i, j in pairs:
+        x0, y0 = POINTS[i]
+        x1, y1 = POINTS[j]
+        ax.plot(
+            [x0, x1], [y0, y1], ls="dashed", color="gray", lw=1.0, zorder=0
+        )
     ax.plot(
         POINTS[:, 0], POINTS[:, 1],
-        ls="", marker="o", ms=10, color="black", zorder=0,
+        ls="", marker="o", ms=10, color="black", zorder=1,
     )
-
-    colors = 0.5 * spin_vectors + 0.5
     ax.quiver(
         POINTS[:, 0], POINTS[:, 1], spin_vectors[:, 0], spin_vectors[:, 1],
         color=colors, units="xy", scale_units="xy", scale=1.45,
-        width=0.06, pivot="mid", clip_on=False, zorder=1,
+        width=0.06, pivot="mid", clip_on=False, zorder=2,
     )
     ax.text(
         1.0, 2.5 * np.sqrt(3), sub_fig_tag,
-        ha="center", va="center", fontsize=LARGE,
+        ha="center", va="center", fontsize=XXLARGE+6,
     )
     ax.set_axis_off()
     ax.set_aspect("equal")
