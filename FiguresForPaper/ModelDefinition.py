@@ -9,7 +9,7 @@ import numpy as np
 from FontSize import *
 
 LW = 6
-MS = 22
+MS = 25
 
 point0 = np.array([0.0, 0.0])
 point1 = np.array([1.0, 0.0])
@@ -61,25 +61,25 @@ for index, point in zip(
 ):
     ax.text(
         point[0], point[1], str(index),
-        fontsize=LARGE, ha="center", va="center", color="black",
+        fontsize=XXLARGE, ha="center", va="center", color="black",
     )
 
 ax.text(
     -0.50, 0.0, "x",
-    fontsize=LARGE, ha="center", va="bottom", color="tab:red",
+    fontsize=XXLARGE+8, ha="center", va="bottom", color="tab:red",
 )
 ax.text(
     0.25, -np.sqrt(3)/4, "y",
-    fontsize=LARGE, ha="left", va="bottom", color="tab:green",
+    fontsize=XXLARGE+8, ha="left", va="bottom", color="tab:green",
 )
 ax.text(
     0.25, np.sqrt(3)/4, "z",
-    fontsize=LARGE, ha="left", va="top", color="tab:blue",
+    fontsize=XXLARGE+8, ha="left", va="top", color="tab:blue",
 )
 
 ax.text(
     0, 1.0, "(c)",
-    fontsize=LARGE, ha="left", va="top", transform=ax.transAxes
+    fontsize=XXLARGE+8, ha="left", va="top", transform=ax.transAxes
 )
 
 ax.set_axis_off()
