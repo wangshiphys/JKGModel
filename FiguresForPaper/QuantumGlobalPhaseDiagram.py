@@ -19,6 +19,10 @@ fig, (ax_north, ax_south) = plt.subplots(
     nrows=1, ncols=2, subplot_kw={"polar": True},
     num="QuantumGlobalPhaseDiagram",
 )
+# fig, (ax_south, ax_north) = plt.subplots(
+#     nrows=1, ncols=2, subplot_kw={"polar": True},
+#     num="QuantumGlobalPhaseDiagram",
+# )
 
 # Draw the north hemisphere
 radius = 0.00
@@ -107,24 +111,25 @@ ax_south.set_title(r"$\Gamma \leq 0$", fontsize=LARGE)
 
 # Annotate the different phases
 phase_annotate_north = [
-    (0.05 * np.pi, 0.35, "Stripe-B"),
+    (0.05 * np.pi, 0.35, "Stripe-C"),
     (0.49 * np.pi, 0.41, r"120$^\circ$ N$\mathsf{\acute e}$el"),
+    (0.40 * np.pi, 0.24, "Modulated\n Stripe"),
     (0.81 * np.pi, 0.30, "Stripe-A"),
-    (1.50 * np.pi, 0.35, "FM-A"),
+    (1.50 * np.pi, 0.35, "FM-B"),
     (0.45 * np.pi, 0.05, "QSL"),
 ]
 for annotate in phase_annotate_north:
     ax_north.text(*annotate, ha="center", va="center", fontsize=LARGE)
 
-ax_north.annotate(
-    "Stripe-C", xy=(0.07 * np.pi, 0.50), xytext=(0.10 * np.pi, 0.60),
-    ha="center", va="bottom", fontsize=LARGE,
-    arrowprops={
-        "arrowstyle": "fancy",
-        "connectionstyle": "angle3",
-        "color": PhaseNames2Colors["StripeC"],
-    },
-)
+# ax_north.annotate(
+#     "Stripe-C", xy=(0.07 * np.pi, 0.50), xytext=(0.10 * np.pi, 0.60),
+#     ha="center", va="bottom", fontsize=LARGE,
+#     arrowprops={
+#         "arrowstyle": "fancy",
+#         "connectionstyle": "angle3",
+#         "color": PhaseNames2Colors["StripeC"],
+#     },
+# )
 ax_north.annotate(
     r"Dual N$\mathsf{\acute e}$el",
     xy=(1.85 * np.pi, 0.50), xytext=(1.82 * np.pi, 0.62),
@@ -136,15 +141,47 @@ ax_north.annotate(
     },
 )
 
+ax_south.annotate(
+    r"Dual N$\mathsf{\acute e}$el",
+    xy=(1.85 * np.pi, 0.50), xytext=(1.82 * np.pi, 0.62),
+    ha="center", va="bottom", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["DualNeel"],
+    },
+)
+
 phase_annotate_south = [
+    (0.49 * np.pi, 0.43, r"120$^\circ$ N$\mathsf{\acute e}$el"),
     (0.50 * np.pi, 0.20, "Stripe-A"),
     (1.50 * np.pi, 0.35, "FM-C"),
 ]
 for annotate in phase_annotate_south:
     ax_south.text(*annotate, ha="center", va="center", fontsize=LARGE)
 
+ax_north.annotate(
+    "Stripe-B", xy=(0.07 * np.pi, 0.50), xytext=(0.10 * np.pi, 0.60),
+    ha="center", va="bottom", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["StripeC"],
+    },
+)
+
 ax_south.annotate(
-    "FM-B", xy=(1.15 * np.pi, 0.50), xytext=(1.16 * np.pi, 0.60),
+    "Stripe-B", xy=(0.07 * np.pi, 0.50), xytext=(0.10 * np.pi, 0.60),
+    ha="center", va="bottom", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["StripeC"],
+    },
+)
+
+ax_north.annotate(
+    "FM-A", xy=(1.15 * np.pi, 0.50), xytext=(1.16 * np.pi, 0.60),
     ha="center", va="top", fontsize=LARGE,
     arrowprops={
         "arrowstyle": "fancy",
@@ -153,6 +190,20 @@ ax_south.annotate(
     },
 )
 
+ax_south.annotate(
+    "FM-A", xy=(1.15 * np.pi, 0.50), xytext=(1.16 * np.pi, 0.60),
+    ha="center", va="top", fontsize=LARGE,
+    arrowprops={
+        "arrowstyle": "fancy",
+        "connectionstyle": "angle3",
+        "color": PhaseNames2Colors["FMB"],
+    },
+)
+
+fig.text(
+    0.02, 0.98, "(a)",
+    ha="left", va="top", fontsize=LARGE
+)
 fig.set_size_inches(18, 9)
 plt.tight_layout()
 plt.show()
