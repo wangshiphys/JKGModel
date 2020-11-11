@@ -3,6 +3,10 @@ import numpy as np
 
 from FontSize import *
 
+line_width = 4
+color_gses = "tab:blue"
+color_d2gses = "tab:red"
+
 
 def derivation(xs, ys, nth=1):
     """
@@ -42,90 +46,92 @@ def derivation(xs, ys, nth=1):
     return xs, ys
 
 
-name0 = "data/GEs_numx=4_numy=6_beta=1.5000.npz"
-name1 = "data/GEs_numx=4_numy=6_beta=0.0000.npz"
-name2 = "data/GEs_numx=4_numy=6_alpha=0.3000.npz"
-with np.load(name0) as ld:
-    gses0 = ld["gses"]
-    params0 = ld["params"]
-with np.load(name1) as ld:
-    gses1 = ld["gses"]
-    params1 = ld["params"]
-with np.load(name2) as ld:
-    gses2 = ld["gses"]
-    params2 = ld["params"]
-d2params0, d2gses0 = derivation(params0, gses0, nth=2)
-d2params1, d2gses1 = derivation(params1, gses1, nth=2)
-d2params2, d2gses2 = derivation(params2, gses2, nth=2)
+names = [
+    "data/GEs_numx=4_numy=6_alpha=0.0500.npz",
+    "data/GEs_numx=4_numy=6_alpha=0.3000.npz",
+    # "data/GEs_numx=4_numy=6_alpha=0.5000.npz",
+    "data/GEs_numx=4_numy=6_alpha=0.7500.npz",
+    "data/GEs_numx=4_numy=6_beta=0.0000.npz",
+    "data/GEs_numx=4_numy=6_beta=0.5000.npz",
+    # "data/GEs_numx=4_numy=6_beta=0.7500.npz",
+    "data/GEs_numx=4_numy=6_beta=1.5000.npz",
+]
+container = []
+for name in names:
+    with np.load(name) as ld:
+        gses = ld["gses"]
+        params = ld["params"]
+    d2params, d2gses = derivation(params, gses, nth=2)
+    container.append((params, gses, d2params, d2gses))
 
-line_width = 4
-color_gses = "tab:blue"
-color_d2gses = "tab:red"
+fig, axes_gses = plt.subplots(2, 3)
 
-fig, (ax0_gses, ax1_gses, ax2_gses) = plt.subplots(1, 3)
-ax0_d2gses = ax0_gses.twinx()
-ax1_d2gses = ax1_gses.twinx()
-ax2_d2gses = ax2_gses.twinx()
+axes_d2gses = []
+axes_gses = axes_gses.reshape((-1,))
+sub_fig_tags = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)", "(g)", "(h)"]
+for index in range(len(names)):
+    ax_gses = axes_gses[index]
+    sub_fig_tag = sub_fig_tags[index]
+    params, gses, d2params, d2gses = container[index]
 
-ax0_gses.plot(params0, gses0, lw=line_width, color=color_gses)
-ax0_d2gses.plot(d2params0, -d2gses0, lw=line_width, color=color_d2gses)
-ax0_gses.set_xlim(0, 0.65)
-ax0_gses.set_ylim(-22, -9.5)
-ax0_d2gses.set_ylim(-700, 40000)
-ax0_gses.set_xlabel(r"$\alpha/\pi$", fontsize=LARGE)
-ax0_gses.set_ylabel("$E$", rotation=0, fontsize=LARGE, color=color_gses)
-ax0_gses.set_yticks([-22, -18, -14, -10])
-ax0_gses.set_xticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-ax0_d2gses.set_yticks([0, 10000, 20000, 30000, 40000])
-ax0_d2gses.set_yticklabels(["0", "1E4", "2E4", "3E4", "4E4"])
-ax0_gses.tick_params("x", colors="black", labelsize=SMALL)
-ax0_gses.tick_params("y", colors=color_gses, labelsize=SMALL)
-ax0_d2gses.tick_params("y", colors=color_d2gses, labelsize=SMALL)
+    ax_d2gses = ax_gses.twinx()
+    axes_d2gses.append(ax_d2gses)
 
-ax1_gses.plot(params1, gses1, lw=line_width, color=color_gses)
-ax1_d2gses.plot(d2params1, -d2gses1, lw=line_width, color=color_d2gses)
-ax1_gses.set_xlim(0, 0.65)
-ax1_gses.set_ylim(-10, -7.6)
-ax1_d2gses.set_ylim(-60, 850)
-ax1_gses.set_xlabel(r"$\alpha/\pi$", fontsize=LARGE)
-ax1_gses.set_yticks([-10, -9, -8])
-ax1_gses.set_xticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-ax1_d2gses.set_yticks([0, 200, 400, 600, 800])
-ax1_d2gses.set_yticklabels(["0", "2E2", "4E2", "6E2", "8E2"])
-ax1_gses.tick_params("x", labelsize=SMALL)
-ax1_gses.tick_params("y", colors=color_gses, labelsize=SMALL)
-ax1_d2gses.tick_params("y", colors=color_d2gses, labelsize=SMALL)
+    ax_gses.plot(params, gses, lw=line_width, color=color_gses)
+    ax_d2gses.plot(d2params, -d2gses, lw=line_width, color=color_d2gses)
+    ax_gses.text(
+        0.06, 0.98, sub_fig_tag,
+        ha="left", va="top", fontsize=XXLARGE+10, transform=ax_gses.transAxes
+    )
+    ax_d2gses.set_yticks([])
 
-ax2_gses.plot(params2, gses2, lw=line_width, color=color_gses)
-ax2_d2gses.plot(d2params2, -d2gses2, lw=line_width, color=color_d2gses)
-ax2_gses.set_ylim(-20, -8)
-ax2_gses.set_xlim(0.25, 1.25)
-ax2_d2gses.set_ylim(-130, 850)
-ax2_gses.set_xlabel(r"$\beta/\pi$", fontsize=LARGE)
-ax2_d2gses.set_ylabel(r"$E''$", rotation=0, fontsize=LARGE, color=color_d2gses)
-ax2_gses.set_yticks([-20, -16, -12, -8])
-ax2_gses.set_xticks([0.25, 0.50, 0.75, 1.00, 1.25])
-ax2_d2gses.set_yticks([0, 200, 400, 600, 800])
-ax2_d2gses.set_yticklabels(["0", "2E2", "4E2", "6E2", "8E2"])
-ax2_gses.tick_params("x", labelsize=SMALL)
-ax2_gses.tick_params("y", colors=color_gses, labelsize=SMALL)
-ax2_d2gses.tick_params("y", colors=color_d2gses, labelsize=SMALL)
+axes_gses[0].set_xlim(-0.5, 1.5)
+axes_gses[0].set_ylim(-12.0, -8.5)
+axes_d2gses[0].set_ylim(-30, 140)
+axes_gses[0].set_xlabel(r"$\beta/\pi$", fontsize=XXLARGE+4)
+axes_gses[0].tick_params("x", labelsize=XXLARGE+2)
+axes_gses[0].tick_params("y", colors=color_gses, labelsize=XXLARGE+2)
+axes_gses[0].set_ylabel("$E$", rotation=0, fontsize=XXLARGE+4, color=color_gses)
 
-ax0_gses.text(
-    0.98, 0.98, "(b)", ha="right", va="top",
-    fontsize=LARGE, transform=ax0_gses.transAxes
-)
-ax1_gses.text(
-    0.98, 0.98, "(c)", ha="right", va="top",
-    fontsize=LARGE, transform=ax1_gses.transAxes
-)
-ax2_gses.text(
-    0.98, 0.98, "(d)", ha="right", va="top",
-    fontsize=LARGE, transform=ax2_gses.transAxes
-)
+axes_gses[1].set_xlim(0, 2)
+axes_gses[1].set_ylim(-20.0, -6.0)
+axes_d2gses[1].set_ylim(-180, 1000)
+axes_gses[1].set_xlabel(r"$\beta/\pi$", fontsize=XXLARGE+4)
+axes_gses[1].tick_params("x", labelsize=XXLARGE+2)
+axes_gses[1].tick_params("y", colors=color_gses, labelsize=XXLARGE+2)
 
-fig.set_size_inches(18, 4)
-plt.tight_layout()
+axes_gses[2].set_xlim(0, 2)
+axes_gses[2].set_ylim(-23.0, -9.0)
+axes_d2gses[2].set_ylim(-200, 3100)
+axes_gses[2].set_xlabel(r"$\beta/\pi$", fontsize=XXLARGE+4)
+axes_gses[2].tick_params("x", labelsize=XXLARGE+2)
+axes_gses[2].tick_params("y", colors=color_gses, labelsize=XXLARGE+2)
+
+axes_gses[3].set_xlim(0, 1)
+axes_gses[3].set_ylim(-15, -7.0)
+axes_d2gses[3].set_ylim(-120, 850)
+axes_gses[3].set_xlabel(r"$\alpha/\pi$", fontsize=XXLARGE+4)
+axes_gses[3].tick_params("x", labelsize=XXLARGE+2)
+axes_gses[3].tick_params("y", colors=color_gses, labelsize=XXLARGE+2)
+axes_gses[3].set_ylabel("$E$", rotation=0, fontsize=XXLARGE+4, color=color_gses)
+
+axes_gses[4].set_xlim(0.25, 0.75)
+axes_gses[4].set_ylim(-14, -11.0)
+axes_d2gses[4].set_ylim(-120, 1000)
+axes_gses[4].set_xticks([0.25, 0.50, 0.75])
+axes_gses[4].set_xlabel(r"$\alpha/\pi$", fontsize=XXLARGE+4)
+axes_gses[4].tick_params("x", labelsize=XXLARGE+2)
+axes_gses[4].tick_params("y", colors=color_gses, labelsize=XXLARGE+2)
+
+axes_gses[5].set_xlim(0.25, 0.75)
+axes_gses[5].set_ylim(-22.5, -17.5)
+axes_d2gses[5].set_ylim(-1000, 40000)
+axes_gses[5].set_xticks([0.25, 0.50, 0.75])
+axes_gses[5].set_xlabel(r"$\alpha/\pi$", fontsize=XXLARGE+4)
+axes_gses[5].tick_params("x", labelsize=XXLARGE+2)
+axes_gses[5].tick_params("y", colors=color_gses, labelsize=XXLARGE+2)
+
 plt.show()
+print(fig.get_size_inches())
 fig.savefig("figures/SecondDerivatives.pdf", transparent=True)
 plt.close("all")
