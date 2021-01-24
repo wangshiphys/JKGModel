@@ -3,6 +3,9 @@
 \usepackage{color}
 \usepackage{graphicx}
 \usepackage[colorlinks,urlcolor=blue,linkcolor=blue,anchorcolor=blue,citecolor=blue,bookmarks]{hyperref}
+\usepackage{changes}
+    \definechangesauthor[name={Shi Wang}, color=red]{swang}
+    \setauthormarkup{}
 
 \begin{document}
 
@@ -47,7 +50,7 @@ On the other hand, exchange frustation in systems with strongly anisotropic magn
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{ModelDefinition.pdf}
+    \includegraphics[width=\columnwidth]{fig/ModelDefinition.pdf}
     \caption{\label{fig:ModelDefinition}(Color online) (a) Top view of the triangular lattice of the edge-sharing octahedron. (b) The orientation of the cubic $x$, $y$, $z$ axes with respect to the octahedron. The spin operators $S^x$, $S^y$ and $S^z$ are defined with respect to this reference frame. (c) Three types of the NN bonds on the triangular lattice, namely $\gamma=x, y, z$ colored red, green and blue, respectively. The different colors of the lattice sites label the four sublattices realizing the four sublattice transformation ( see main text for details).}
 \end{figure}
 In fact, magnetic ions located at the center of edge-sharing octahedra can not only form the honeycomb lattice but also the triangular lattice (see Fig.~\ref{fig:ModelDefinition}(a)), so the Kitaev and $\Gamma$ terms can naturally be generalized to the triangular lattice~\cite{PhysRevB.89.014414,PhysRevB.93.104417}. On the experimental side, studies on several classes of  compounds containing localized $4d$, $5d$ or $4f$ electrons have recently shown that the quantum spin model on the triangular lattice can be formed by the localized moments~\cite{PhysRevB.86.140405,PhysRevB.94.174410,srep16419,PhysRevLett.115.167203,PhysRevLett.120.087201,CEVALLOS2018154,10.1038/s41535-019-0151-6}. In particular, due to their possible Kramers doublets and spin-orbital coupling, these moments can be treated as $S_{eff}=1/2$ at low temperatures, and the spin-orbital entanglement can induce direction-dependent exchanges, such as the $K$ and $\Gamma$ terms. A typical example is YbMgGaO$_{4}$~\cite{srep16419,PhysRevLett.115.167203}, in which the Yb$^{3+}$ ions form a triangular layer and are surrounded by O$^{2-}$ which construct edge sharing octahedra, but due to the inherent disorder effect there are still controversies about the GS of this material~\cite{srep16419,PhysRevLett.115.167203,PhysRevLett.120.087201,PhysRevB.94.035107,Nature20614,nphys3971,PhysRevLett.117.267202,PhysRevX.8.031028,SciPostPhys.4.1.003,PhysRevB.97.184413}. More recently, an alternative family of compounds AReCh$_2$ (A=alkali, Re=rare-earth, Ch=O, S, Se) with perfect triangular lattices of rare-earth ions have been synthesized and explored. The magnetic susceptibilty and heat capacity data suggest no long-range magnetic order or spin freezing down to the lowest measurement temperature, which implies their candidacy for QSL state~\cite{acsmaterialslett.9b00464,PhysRevMaterials.3.114413,PhysRevB.100.241116,Liu_2018,PhysRevB.99.180401,PhysRevB.100.224417,PhysRevB.100.144432}. These triangluar magnets provide suitable platforms to study the interplay of geometric frustation and exchange frustration induced by spin-orbital couplings.
@@ -132,12 +135,18 @@ where $E_0$ is the GS energy.
 
 In order to better understand the quantum phases identified by the ED method, we also perform classical Monte Carlo simulations. We begin with paralleling-tempering Monte Carlo~\cite{Hukushima96} on 40 replicas with temperature $T/J$ ranging from $0.001$ to $1.0$. For each replica, we sample it with a combination of heat-bath~\cite{Miyatake84} and over-relaxation method~\cite{Berg} mainly on a $24 \times 24$ triangle lattice with periodic boundary conditions. A whole Monte Carlo step consists of a single heat-bath sweep and subsequent 10 over-relaxation sweeps over the entire lattice. We perform $10^6$ Monte Carlo steps per replica, then, we copy out the spin configuration from the lowest-T replica, and sample it with a combination of zero-temperature heat-bath and over-relaxation method to get the GS. The zero-temperature heat-bath sampling is simply aligning the spins according to their local fields:
 \begin{align}
-    \bm{S}_{i} = \frac{\bm{h}_{i}^{loc}}{|\bm{h}_{i}^{loc}|} S,
+    \vec{S}_{i} = \frac{\vec{h}_{i}^{loc}}{|\vec{h}_{i}^{loc}|} S,
 \end{align}
 with
 \begin{align}
-    \bm{h}_{i}^{loc} = \sum_{\langle j \rangle} J \bm{S}_{j} + K {S}^{\gamma}_{j} \hat{e}^{\gamma} + \Gamma (S^{\alpha}_{j} \hat{e}^{\beta} + S^{\beta}_{j} \hat{e}^{\alpha}),
+    \vec{h}_{i}^{loc} = \sum_{\langle j \rangle} J \vec{S}_{j} + K {S}^{\gamma}_{j} \hat{e}^{\gamma} + \Gamma (S^{\alpha}_{j} \hat{e}^{\beta} + S^{\beta}_{j} \hat{e}^{\alpha}),
 \end{align}
+\added[swang]{
+    and the over-relaxation sampling is just mirror reflection of a spin with respect to the local field:
+    \begin{eqnarray}
+        \vec{S}_i^{new} & = &\frac{2 (\vec{S}_i^{old} \cdot \vec{h}_i^{loc}) \vec{h}_i^{loc}}{|\vec{h}_i^{loc}|^2}-\vec{S}_i^{old}.
+    \end{eqnarray}
+}
 For some competing states, we start from several different initial configurations in order to obtain the correct classical GS.
 
 From the magnetic configuration of GS, we compute the SSF given by
@@ -152,15 +161,15 @@ which is a key characteristic to identify magnetic phases.
 
 \begin{figure*}
     \centering
-    \includegraphics[width=0.95\textwidth]{QuantumGlobalPhaseDiagram.pdf}
-    \caption{\label{fig:QuantumPhaseDiagram}(Color online) Global phase diagram of the triangular lattice $J$-$K$-$\Gamma$ model. The angle $\alpha$ and $\beta$ denote the radial and azimuthal angles, respectively. There are in total ten phases including three FM phases denoted as FM-A, FM-B and FM-C, three stripe phases denoted as Stripe-A, Stripe-B and Stripe-C, a modulated stripe phase, a 120$^\circ$ N\'{e}el phase, a dual N\'{e}el phase and a possible QSL phase. Phase boundaries are determined by the singularities of $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ from ED calculations except for that depicted by the dashed line between the modulated stripe and stripe-C phases given by the classical analyses.}
+    \includegraphics[width=0.95\textwidth]{fig/QuantumGlobalPhaseDiagram.pdf}
+    \caption{\label{fig:QuantumPhaseDiagram}(Color online) \replaced[swang]{Zero-temperature global}{Global} phase diagram of the triangular lattice $J$-$K$-$\Gamma$ model. The angle $\alpha$ and $\beta$ denote the radial and azimuthal angles, respectively. There are in total ten phases including three FM phases denoted as FM-A, FM-B and FM-C, three stripe phases denoted as Stripe-A, Stripe-B and Stripe-C, a modulated stripe phase, a 120$^\circ$ N\'{e}el phase, a dual N\'{e}el phase and a possible QSL phase. Phase boundaries are determined by the singularities of $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ from ED calculations except for that depicted by the dashed line between the modulated stripe and stripe-C phases given by the classical analyses.}
 \end{figure*}
 
-The quantum phase diagrams obtained by the ED method for $\Gamma \geq 0$ and $\Gamma \leq 0$ on a $4 \times 6$ cluster with the periodic boundary condition are presented in Fig.~\ref{fig:QuantumPhaseDiagram}, where the phase boundaries are determined by the location of singularities in $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ (see Appendix \ref{apx:PhaseBoundary} for details). We find nine magnetically ordered phases and a phase ascribed to be a QSL. The nine ordered magnetic phases consist of three stripe phases (dubbed as stripe-A, strip-B and stripe-C in Fig.~\ref{fig:QuantumPhaseDiagram}), three FM phases (dubbed as FM-A, FM-B and FM-C in Fig.~\ref{fig:QuantumPhaseDiagram}), one 120$^\circ$ N\'{e}el phase, one dual N\'{e}el phase and one modulated stripe phase. In the followings, we will discuss the details on the natures of these phases and the corresponding phase transitions.
+The \added[swang]{zero-temperature} quantum phase diagrams obtained by the ED method for $\Gamma \geq 0$ and $\Gamma \leq 0$ on a $4 \times 6$ cluster with the periodic boundary condition are presented in Fig.~\ref{fig:QuantumPhaseDiagram}, where the phase boundaries are determined by the location of singularities in $-\partial^2E_0/\partial\alpha^2$ and $-\partial^2E_0/\partial\beta^2$ (see Appendix \ref{apx:PhaseBoundary} for details). We find nine magnetically ordered phases and a phase ascribed to be a QSL. The nine ordered magnetic phases consist of three stripe phases (dubbed as stripe-A, strip-B and stripe-C in Fig.~\ref{fig:QuantumPhaseDiagram}), three FM phases (dubbed as FM-A, FM-B and FM-C in Fig.~\ref{fig:QuantumPhaseDiagram}), one 120$^\circ$ N\'{e}el phase, one dual N\'{e}el phase and one modulated stripe phase. In the followings, we will discuss the details on the natures of these phases and the corresponding phase transitions.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{HKModel.pdf}
+    \includegraphics[width=\columnwidth]{fig/HKModel.pdf}
     \caption{\label{fig:HKModel}(Color online) Phase diagram in the HK limit ($\Gamma=0$). The double-arrow lines are the representative lines that connect the points exactly related by the FST.}
 \end{figure}
 Let's first discuss the HK limit for $\Gamma=0$. In accord with the previous study~\cite{KaiLi2015}, we find five quantum phases (see Fig.~\ref{fig:HKModel}). For pure Heisenberg models ($K=\Gamma=0$), the GSs are well known, i.e., a FM state for $J<0$ and a 120$^\circ$ N\'{e}el state for $J>0$, respectively. So, the phase in the region between $\beta=1.00\pi$ and $1.82\pi$ is identified as FM-A, and that between $\beta=0.23\pi$ and $0.64\pi$ the 120$^\circ$ N\'{e}el state. As introduced in Sec.~\ref{sec:Model}, the HK model ($\Gamma=0$) preserves its form under the FST, which is in fact a spin-rotation transformation~\cite{PhysRevB.89.014414}. The transformed model has different exchange interactions related to the original ones via Eq.~\eqref{eq:JK} and the mapping angle is given by Eq.~\eqref{eq:angle}. Thus, by virtue of the FST, we can identify other two magnetically ordered phases. Starting from the FM-A phase, it will be transformed to the phase between $\beta=1.00\pi$ and $0.64\pi$ via the angle mapping Eq.~\eqref{eq:angle}. Then, using the spin rotation transformation Eq.~\eqref{eq:FST}, one can identify the phase between $\beta=1.00\pi$ and $0.64\pi$ as a collinear stripe state (denoted as stripe-A). Similarly, the 120$^\circ$ N\'{e}el state is transformed to a noncollinear spiral order (Dual N\'{e}el) in the region from $\beta=1.82\pi$ to $\beta=1.90\pi$. We also note that, as indicated in Fig.~\ref{fig:HKModel}, the transition points $\beta=0.23\pi$ and $0.64\pi$ are indeed mapped to the transition points $\beta=1.90\pi$ and $1.82\pi$ through the FST. However, the transition point $\beta=\pi$ is mapped to itself under the FST, so it the isolated transition point.
@@ -178,8 +187,8 @@ When we carefully examine the SSF near $\beta=0.5\pi$, we find that the SSF is o
 For the other two phases with large areas and mainly located in the $J<0$ region of the phase diagram, we show the SSFs of two representative points with $\alpha=0.3\pi, \beta=1.3\pi$ and $\alpha=0.7\pi, \beta=1.65\pi$ in Fig.~\ref{fig:StructureFactors}(f) and (g), respectively. The SSFs are peaked at $\tilde{\Gamma}$ point of the first BZ, so both phases have FM orders and they are denoted with FM-B and FM-C in Fig.~\ref{fig:QuantumPhaseDiagram}. We note that there are two special points with $\Gamma=\pm1$ ($J=K=0$) in the two FM phases, which are located at the phase boundary in the classical phase diagram~\cite{PhysRevB.92.165108}. Thus, it is worthy to discuss the properties of the pure $\Gamma$ models in details, and we perform an analysis based on the ``basin-hopping" global optimization and classical Monte Carlo methods. For $\Gamma=+1$, apart from the FM GS with the spin orientation lying in the lattice plane, we also found disordered states having the same energy as the FM state (see Appendix~\ref{apx:DegeneratedStates} for details). For $\Gamma=-1$, in addition to the FM order perpendicular to the lattice plane, there are also several noncollinear magnetic orders energetically degenerate with the FM state (see Appendix~\ref{apx:DegeneratedStates} for details). However, according to our ED calculations, for the quantum model, quantum fluctuations select the FM ordered states as the GS out of the degenerate manifolds of classical states. This selection of states among the degenerate classical GSs is the so called order-by-disorder mechanism, which has previously been applied in a number of insulating magnets, especially in cases where frustration leads to a degenerate manifold of classical GS configurations that is broken by quantum fluctuations~\cite{JPSJ.54.4494,PhysRevLett.62.2056,PhysRevLett.88.067203,PhysRevB.81.214419,PhysRevLett.109.077204}.
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{StructureFactors.pdf}
-    \caption{\label{fig:StructureFactors}(Color online) SSFs from the ED calculations for representative interaction parameters in different phases: (a) stripe-B, (b) and (c) stripe-A, (d) stripe-C, (e) modulated stripe, (f) FM-B, (g) FM-C, (h) QSL. The green dashed lines mark the first BZ of the triangular lattice. (i) Characteristic wave vectors for the FM and stripe phases. See Appendix~\ref{apx:SSF} for the SSFs of the 120$^\circ$ N\'{e}el phase, dual N\'{e}el phase and pure $\Gamma$ models.}
+    \includegraphics[width=\columnwidth]{fig/StructureFactors.pdf}
+    \caption{\label{fig:StructureFactors}(Color online) SSFs from the ED calculations for representative interaction parameters in different phases: (a) stripe-B, (b) and (c) stripe-A, (d) stripe-C, (e) modulated stripe, (f) FM-B, (g) FM-C, (h) QSL. The green dashed lines mark the first BZ of the triangular lattice. (i) Characteristic wave vectors for the \replaced[swang]{FM (blue circle), stripe (orange square), 120$^\circ$ N\'{e}el (red up-triangle) and dual N\'{e}el (purple down-triangle)}{FM and stripe} phases. See Appendix~\ref{apx:SSF} for the SSFs of the 120$^\circ$ N\'{e}el phase, dual N\'{e}el phase and pure $\Gamma$ models.}
 \end{figure}
 
 According to the above analyses, we find that, unlike the case for the honeycomb lattice, the Kitaev interactions on the triangular lattice do not give rise to QSL states. Here, the large coordination number plays a key role to stabilize the classical magnetic orders, although the geometric and exchange frustrations coexist in the triangular lattice $J$-$K$-$\Gamma$ model. However, the SSF for the quantum phase in a small region around the point with $J=K=0$ and $\Gamma=1$ illustrated in Fig.~\ref{fig:StructureFactors}(h) exhibits high intensities at both $\tilde{\Gamma}$ and $\tilde{M}$ points, and it seems impossible for a classical magnetically ordered state to satisfy these two wave vectors simultaneously, so we infer that this quantum phase is a QSL candidate.
@@ -188,7 +197,7 @@ So far, we have determined every phase in the parameter space, but there are sti
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.95\columnwidth]{ModulatedStripe.pdf}
+    \includegraphics[width=0.95\columnwidth]{fig/ModulatedStripe.pdf}
     \caption{\label{fig:ModulatedStripe}(Color online) (a) Spin configuration obtained from basin-hopping optimization for $\alpha=0.3\pi$, $\beta=0.5\pi$ in a $12 \times 12$ cluster. (b) SSF corresponding to the spin configuration shown in (a). (c) Spin configuration obtained from the classical Monte Carlo calculations in a $24 \times 24$ cluster.}
 \end{figure}
 
@@ -203,7 +212,7 @@ where $v^x$, $v^y$, $v^z$ are the three components of the classical moment vecto
 In order to confirm the consistency between the above classical analyses and the ED results, we use the spin coherent state to extract the moment directions of these FM phases from our ED cluster GSs~\cite{PhysRevB.94.064435}. Since the cluster spin coherent state defined in Eq.~(\ref{eq:Spin-1/2CoherentState}) is captured only by a single pair of $(\theta, \phi)$ for the collinear states, it is easy to determine the directions of the FM orders by inspecting the probability map $P(\theta, \phi) = | \langle \Psi (\theta, \phi) | GS \rangle |^2$. As shown in Fig.~\ref{fig:Proabilities}(a), for the FM-B phase, the peaks of the probability form a ring, indicating that the moment is constrained to a plane with all directions degenerate. To compare with the classical results, we plot the classical magnetic moment directions with the green dashed line in Fig.~\ref{fig:Proabilities}(a), and find that the probability centers on the classical magnetic moment directions. For the FM-C phase, the probability map is clearly peaked at specific directions, which are also consistent with the classical results marked by the green solid circle in Fig. \ref{fig:Proabilities}(b). Moreover, the large overlaps between the exact cluster GSs and FM cluster spin coherent states again provide solid evidences that the ED results are consistent with the classical analyses.
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{Probabilities.pdf}
+    \includegraphics[width=\columnwidth]{fig/Probabilities.pdf}
     \caption{\label{fig:Proabilities}(Color online) Maps of the probabilities of the cluster spin coherent states given by Eq.~\eqref{eq:Spin-1/2CoherentState} in exact cluster GS for (a) FM-B, (b) FM-C, (c) stripe-A and (d) stripe-C phases. The radial and polar coordinate give the angles $\theta$ and $\phi$, which are spherical angles with respect to the reference frame shown in Fig.~\ref{fig:ModelDefinition}(b). The green dashed line and solid circles mark the ordered moment directions for the classical states. Note that the GSs are two-fold degenerate for the FM-C phase, and six-fold degenerate for the stripe-A and stripe-C phases, so the total probabilities for all of these phases are approximate to $1$. }
 \end{figure}
 
@@ -245,7 +254,7 @@ Although the GSs of the pure Heisenberg, Kitaev and $\Gamma$ models are not QSL,
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{Spectrum.pdf}
+    \includegraphics[width=\columnwidth]{fig/Spectrum.pdf}
     \caption{\label{fig:Spectrum}(Color online) DSF $A(\bm{k}, \omega)$ for $\alpha=0.05\pi,\beta=0.1\pi$ in the QSL phase. The path $\tilde{M}-\tilde{\Gamma}-\tilde{M}-\tilde{\Gamma}$ is shown in Fig.~\ref{fig:StructureFactors}(i).}
 \end{figure}
 
@@ -257,20 +266,36 @@ Among them, the 120$^\circ$ N\'{e}el, the dual N\'{e}el and one of the stripe ph
 Our study of the global phase diagram on a generic spin model paves the way for future studies of a large group of triangular transition-metal materials with an appreciable spin-orbit coupling and electronic correlations.
 
 \begin{acknowledgments}
-This work was supported by the National Natural Science Foundation of China (Grants No. 11674158, No. 11774152 and No. 11774300) and National Key Projects for Research and Development of China (Grant No. 2016YFA0300401).
+This work was supported by the National Natural Science Foundation of China (Grants No. 11674158, No. 11774152\replaced[swang]{, No. 11774300 and No. 12004191}{ and No. 11774300})\replaced[swang]{,}{ and} National Key Projects for Research and Development of China (Grant No. 2016YFA0300401) \added[swang]{and Natural Science Foundation of Jiangsu Province, China (Grant No. BK20200738)}.
 \end{acknowledgments}
 
 \appendix
 
-\section{\label{apx:PhaseBoundary}Phase boundaries in the quantum phase diagram}
+\section{\label{apx:PhaseBoundary}Phase boundaries in the \added[swang]{zero-temperature} quantum phase diagram}
 
-As mentioned in the main text, the phase boundaries are determined by the locations of singularities in $-\partial^{2} E_{2} / \partial \alpha^{2}$ and $-\partial^{2} E_{0} / \partial \beta^{2}$ based on the ED calculations. Some representative curves are shown in Fig.~\ref{fig:SecondDerivatives}. In Fig.~\ref{fig:SecondDerivatives}(a) for $\alpha=0.05\pi$, the second derivative of $E_0$ versus $\beta$ has two peaks located at $\beta=-0.01\pi$ and $\beta=0.81\pi$, which are the phase boundaries between the FM-B and QSL phases. As we increase $\alpha$ to $0.3\pi$, there are three singularities in the second derivatives (see Fig.~\ref{fig:SecondDerivatives}(b)). The small peak at $\beta=0.62\pi$ indicates the phase transition from modulated stripe to stripe-A, while the other two sharp peaks at $\beta=0.94\pi$ and $\beta=1.87\pi$ originate from the phase transitions from stripe-A to FM-B and from FM-B to stripe-C, respectively. Fig.~\ref{fig:SecondDerivatives}(c) shows the case for $\alpha=0.75\pi$, where the two peaks located at $\beta=0.87\pi$ and $\beta=1.89\pi$ signify the phase transitions between stripe-A and FM-C. On the other hand, we can also fix $\beta$ to detect the phase transitions with varying $\alpha$ and the corresponding results are shown in Figs.~\ref{fig:SecondDerivatives}(d)-(f). In Fig.~\ref{fig:SecondDerivatives}(d), $\beta$ equals to $0$, the first two sharp peaks at $\alpha=0.045\pi$ and $\alpha=0.097\pi$ reveal the phase transitions from FM-B to QSL and further to stripe-C. The peak at about $\alpha=0.5\pi$ is due to the phase transition from stripe-C to stripe-A. The last singularity at $\alpha=0.93\pi$ marks the phase boundary between stripe-A and FM-C. In Fig.~\ref{fig:SecondDerivatives}(e), we show the phase transition between modulated stripe and 120$^\circ$ N\'{e}el as well as the phase transition from 120$^\circ$ N\'{e}el to stripe-A. Here, $\beta$ is fixed to $0.5\pi$, and the transitions occur at $\alpha=0.32\pi$ and $\alpha=0.62\pi$, respectively. Last but not least, we show there are phase transitions between these different FM phases. In Fig.~\ref{fig:SecondDerivatives}(f) where $\beta=1.5\pi$, the sharp peak at $\alpha=0.5\pi$ shows that the FM-A phase for the HK model is a phase-transition boundary, infinitesimal $\Gamma$ interaction will cause phase transitions to other FM phases which have different moment directions from the FM-A phase.
+As mentioned in the main text, the phase boundaries are determined by the locations of singularities in $-\partial^{2} E_{0} / \partial \alpha^{2}$ and $-\partial^{2} E_{0} / \partial \beta^{2}$ based on the ED calculations. Some representative curves are shown in Fig.~\ref{fig:SecondDerivatives46}. In Fig.~\ref{fig:SecondDerivatives46}(a) for $\alpha=0.05\pi$, the second derivative of $E_0$ versus $\beta$ has two peaks located at $\beta=-0.01\pi$ and $\beta=0.81\pi$, which are the phase boundaries between the FM-B and QSL phases. As we increase $\alpha$ to $0.3\pi$, there are three singularities in the second derivatives (see Fig.~\ref{fig:SecondDerivatives46}(b)). The small peak at $\beta=0.62\pi$ indicates the phase transition from modulated stripe to stripe-A, while the other two sharp peaks at $\beta=0.94\pi$ and $\beta=1.87\pi$ originate from the phase transitions from stripe-A to FM-B and from FM-B to stripe-C, respectively. Fig.~\ref{fig:SecondDerivatives46}(c) shows the case for $\alpha=0.75\pi$, where the two peaks located at $\beta=0.87\pi$ and $\beta=1.89\pi$ signify the phase transitions between stripe-A and FM-C. On the other hand, we can also fix $\beta$ to detect the phase transitions with varying $\alpha$ and the corresponding results are shown in Figs.~\ref{fig:SecondDerivatives46}(d)-(f). In Fig.~\ref{fig:SecondDerivatives46}(d), $\beta$ equals to $0$, the first two sharp peaks at $\alpha=0.045\pi$ and $\alpha=0.097\pi$ reveal the phase transitions from FM-B to QSL and further to stripe-C. The peak at about $\alpha=0.5\pi$ is due to the phase transition from stripe-C to stripe-A. The last singularity at $\alpha=0.93\pi$ marks the phase boundary between stripe-A and FM-C. In Fig.~\ref{fig:SecondDerivatives46}(e), we show the phase transition between modulated stripe and 120$^\circ$ N\'{e}el as well as the phase transition from 120$^\circ$ N\'{e}el to stripe-A. Here, $\beta$ is fixed to $0.5\pi$, and the transitions occur at $\alpha=0.32\pi$ and $\alpha=0.62\pi$, respectively. Last but not least, we show there are phase transitions between these different FM phases. In Fig.~\ref{fig:SecondDerivatives46}(f) where $\beta=1.5\pi$, the sharp peak at $\alpha=0.5\pi$ shows that the FM-A phase for the HK model is a phase-transition boundary, infinitesimal $\Gamma$ interaction will cause phase transitions to other FM phases which have different moment directions from the FM-A phase.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{SecondDerivatives.pdf}
-    \caption{\label{fig:SecondDerivatives} (Color online) GS energies and their second derivatives versus $\alpha$ or $\beta$ for six representative paths in the phase diagram. The blue lines are the GS energies and the red lines are the second derivatives. In (a)-(c) $\alpha$ is fixed to $0.05\pi$, $0.3\pi$ and $0.75\pi$, respectively. In (d)-(f), $\beta$ is fixed to $0$, $0.5\pi$ and $1.5\pi$, respectively.}
+    \includegraphics[width=\columnwidth]{fig/SecondDerivatives46.pdf}
+    \caption{\label{fig:SecondDerivatives46} (Color online) GS energies and their second derivatives versus $\alpha$ or $\beta$ for six representative paths in the phase diagram. \added[swang]{The ED calculations are performed on a $4 \times 6$ cluster with periodic boundary condition.} The blue lines are the GS energies and the red lines are the second derivatives. In (a)-(c) $\alpha$ is fixed to $0.05\pi$, $0.3\pi$ and $0.75\pi$, respectively. In (d)-(f), $\beta$ is fixed to $0$, $0.5\pi$ and $1.5\pi$, respectively.}
 \end{figure}
+
+\added[swang]{
+    \section{\label{apx:SizeEffect}The effects of system size on the phase boundaries}
+    To study the effects of system size on the zero-temperature quantum phase diagram, we carry out ED calculations on a $2 \times 6$ cluster with periodic boundary condition, see Fig.~\ref{fig:SecondDerivatives26}(g) for the cluster as well as the periodic boundary condition. This cluster is compatible with most of the magnetic orders, such as FM, stripe, 120$^\circ$ N\'{e}el, dual N\'{e}el and modulated stripe shown in Fig.~\ref{fig:ModulatedStripe}(a).
+
+    In Fig.~\ref{fig:SecondDerivatives26}(a)-(c), the $\alpha$ parameter is fixed to $0.05\pi$, $0.2\pi$ and $0.75\pi$, respectively. In Fig.~\ref{fig:SecondDerivatives26}(d)-(f), the $\beta$ parameter is fixed to 0, $0.5\pi$ and $1.5\pi$, respectively. The singularities in Fig.~\ref{fig:SecondDerivatives26}(a)-(f) are consistent with the results of the $4 \times 6$ cluster shown in Fig.~\ref{fig:SecondDerivatives46}(a)-(f) even though the positions of the phase boundaries are slightly shifted. It is worth to note that, in Fig.~\ref{fig:SecondDerivatives26}(b) the $\beta$ parameter is fixed to $0.2\pi$ while in Fig.~\ref{fig:SecondDerivatives46}(b) $\beta = 0.3\pi$. The reason to take different $\beta$ parameter is that for $2 \times 6$ cluster the region of the 120$^\circ$ N\'eel phase would extend to larger area. If we continue take $\beta = 0.3\pi$, the singularities in -$\partial^2E_0 / \partial \alpha^2$ would not correspond to the peaks shown in Fig.~\ref{fig:SecondDerivatives46}(b). In a word, different system size only has effects on the positions of the phase boundaries but not these quantum phases.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\columnwidth]{fig/SecondDerivatives26.pdf}
+        \includegraphics[width=\columnwidth]{fig/Cluster26.pdf}
+        \added[swang]{
+            \caption{\label{fig:SecondDerivatives26} (Color online) GS energies and their second derivatives versus $\alpha$ or $\beta$ along the same paths shown in Fig.~\ref{fig:SecondDerivatives46}. The blue lines are the GS energies and the red lines are the second derivatives. In (a)-(c) $\alpha$ is fixed to $0.05\pi$, $0.3\pi$ and $0.75\pi$, respectively. In (d)-(f), $\beta$ is fixed to $0$, $0.5\pi$ and $1.5\pi$, respectively. (g) The $2 \times 6$ cluster as well as the periodic boundary condition that is used to perform the ED calculations.}
+        }
+    \end{figure}
+}
 
 \section{\label{apx:SSF}Supplements of the SSF from the ED calculations}
 
@@ -280,7 +305,7 @@ In the main text, we argue that the GSs of the pure $\Gamma$ models are FM order
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{AppendixSSF.pdf}
+    \includegraphics[width=\columnwidth]{fig/AppendixSSF.pdf}
     \caption{\label{fig:AppendixSSF}(Color online) (a) and (b) are the representative SSF profiles for 120$^\circ$ N\'{e}el and dual N\'{e}el phase, respectively. (c) and (d) are the SSF profiles for the pure $\Gamma$ models with $\Gamma = \pm 1$, respectively.}
 \end{figure}
 
@@ -292,7 +317,7 @@ For pure positive $\Gamma$ model, the classical GSs are highly degenerate includ
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{SpinConfigForPositiveGamma.pdf}
+    \includegraphics[width=\columnwidth]{fig/SpinConfigForPositiveGamma.pdf}
     \caption{\label{fig:GSForPositiveGamma}(Color online) Typical disordered GS for $J=K=0, \Gamma=1$. For clarity, the equal spin vectors are marked with the same color, and the arrows denote the projections of the three-dimensional vectors to the $xy$ plane.}
 \end{figure}
 
@@ -300,11 +325,11 @@ For pure positive $\Gamma$ model, the classical GSs are highly degenerate includ
 
 For pure negative $\Gamma$ model, we found several energetically degenerate states as the classcial GSs, including FM state, stripe states and a noncollinear state. The ordered moment of the FM state perpendicular to the lattice plane. As for the stripe states, there are three degenerate spin configurations as shown in Fig.~\ref{fig:GSForNegativeGamma}(a)-(c) and the moment directions for the cyan, red, pink, green, yellow and blue arrows are $[\bar{1}11]$, $[1\bar{1}\bar{1}]$, $[1\bar{1}1]$, $[\bar{1}1\bar{1}]$, $[11\bar{1}]$ and $[\bar{1}\bar{1}1]$, respectively. Apart from these collinear states, a noncollinear state also exist as the classical GS. The magnetic unit-cell contains four lattice sites, and the moment directions for the yellow, gray, pink, cyan arrows in Fig.~\ref{fig:GSForNegativeGamma}(d) are $[11\bar{1}]$, $[111]$, $[1\bar{1}1]$ and $[\bar{1}11]$, respectively.
 \begin{figure}
-    \includegraphics[width=\columnwidth]{SpinConfigForNegativeGamma.pdf}
+    \includegraphics[width=\columnwidth]{fig/SpinConfigForNegativeGamma.pdf}
     \caption{\label{fig:GSForNegativeGamma}(Color online) Typical classical GS spin configurations for $J=K=0, \Gamma=-1$. The spin vectors are projected to the $xy$ plane and different vectors are represented by different colors. (a)-(c) Stripe ordered states. The directions for the cyan, red, pink, green, yellow and blue arrows are $[\bar{1}11]$, $[1\bar{1}\bar{1}]$, $[1\bar{1}1]$, $[\bar{1}1\bar{1}]$, $[11\bar{1}]$ and $[\bar{1}\bar{1}1]$, respectively. (d) Noncollinear state. The directions for the yellow, gray, pink, cyan arrows are $[11\bar{1}]$, $[111]$, $[1\bar{1}1]$ and $[\bar{1}11]$, respectively.}
 \end{figure}
 \begin{figure}
-    \includegraphics[width=\columnwidth]{SpinConfigForPositiveKitaev.pdf}
+    \includegraphics[width=\columnwidth]{fig/SpinConfigForPositiveKitaev.pdf}
     \caption{\label{fig:GSForPositiveK}(Color online) Classical stripe and nematic GS spin configurations for $J=\Gamma=0, K=1$. (a)-(c) Stripe states. (d)-(f) Nematic states.}
 \end{figure}
 
